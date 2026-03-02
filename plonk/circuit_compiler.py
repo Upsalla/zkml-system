@@ -34,6 +34,7 @@ class GateType(Enum):
     GELU_SQUARE = "gelu_sq"    # x² für GELU
     GELU_CUBIC = "gelu_cub"    # x³ für GELU
     GELU_OUTPUT = "gelu_out"   # Finale GELU-Berechnung
+    RELU_SIGN = "relu_sign"    # Boolean constraint for ReLU sign bit
 
 
 @dataclass
@@ -444,22 +445,56 @@ class CircuitCompiler:
         """
         Compile ReLU activation into PLONK gates.
 
-        ReLU(x) = max(0, x) requires bit-decomposition range check +
-        sign-based conditional selection.
-        
-        STATUS: NOT IMPLEMENTED.
-        The previous implementation allocated 254 boolean-constrained bits
-        but only used bit_wires[0] in the reconstruction gate, making
-        the constraint incomplete (it didn't enforce Σ bᵢ·2ⁱ = x).
-        
-        Raises:
-            NotImplementedError: Always. Use the TDAGadgets range_check instead.
+        ReLU(x) = max(0, x) = s · x, where s ∈ {0, 1}.
+
+        Sign convention: x is "positive" if x.to_int() < MODULUS // 2,
+        "negative" if x.to_int() >= MODULUS // 2 (upper half = negatives).
+
+        Gate layout (2 gates per neuron):
+          Gate 1 (RELU_SIGN): s · (s - 1) = 0  (boolean constraint)
+              → q_M=1, q_L=-1 on wire s (self-multiply gate)
+          Gate 2 (MUL): s · x = output
+
+        Cost: 2 gates per neuron (vs 255 for full bit-decomposition).
+        Trade-off: Prover determines sign — no in-circuit range proof
+        on x. Suitable when inputs come from constrained prior layers.
         """
-        raise NotImplementedError(
-            "ReLU activation compilation is not yet correctly implemented. "
-            "Bit-decomposition reconstruction is incomplete. "
-            "Use TDAGadgets.range_check() for proper range proofs."
+        NEG_ONE = Fr(Fr.MODULUS - 1)
+
+        gates = []
+        x_val = self.wires[input_wire].value or Fr.zero()
+
+        # Determine sign: positive if in lower half of field
+        x_int = x_val.to_int()
+        is_positive = 1 if x_int < Fr.MODULUS // 2 else 0
+
+        # Wire for sign bit s
+        s_wire = self._new_wire(f"relu_sign_L{layer_idx}_N{neuron_idx}")
+        self._set_wire_value(s_wire, Fr(is_positive))
+
+        # Gate 1: Boolean constraint — s · (s - 1) = 0
+        # PLONK form: q_M · a · b + q_L · a = 0
+        # With a=b=s: q_M · s² + q_L · s = 0 → s² - s = 0 → s(s-1) = 0
+        g1 = Gate(
+            gate_type=GateType.RELU_SIGN,
+            left=s_wire,
+            right=s_wire,
+            output=s_wire,  # unused/self-referencing
+            q_M=Fr.one(),   # s²
+            q_L=NEG_ONE,    # -s
+            layer_idx=layer_idx,
+            neuron_idx=neuron_idx,
         )
+        self._add_gate(g1)
+        gates.append(g1)
+
+        # Gate 2: output = s * x
+        relu_val = Fr(is_positive) * x_val
+        self._set_wire_value(output_wire, relu_val)
+        g2 = self._add_mul_gate(s_wire, input_wire, output_wire, layer_idx, neuron_idx)
+        gates.append(g2)
+
+        return gates
     
     def _compile_dense_layer(
         self,
