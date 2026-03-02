@@ -38,16 +38,24 @@ from zkml_system.plonk.poseidon import PoseidonHash, PoseidonGadget
 # We encode floats as integers with SCALE precision.
 # float_value * SCALE -> field element
 # This gives us ~6 decimal digits of precision.
+# IMPORTANT: All fixed-point conversions MUST use half-up rounding
+# (math.floor(x + 0.5)) for consistency with GELU coefficient truncation.
 FIXED_POINT_SCALE = 1_000_000  # 10^6
 FIXED_POINT_SCALE_FR = Fr(FIXED_POINT_SCALE)
+# Squared distances produce values in SCALE^2 units.
+# Use this constant when comparing or range-checking squared distances.
 FIXED_POINT_SCALE_SQ = Fr(FIXED_POINT_SCALE * FIXED_POINT_SCALE)
 RANGE_CHECK_BITS = 64  # Covers squared distances up to ~1.8e19
 
 
 def float_to_fr(value: float) -> Fr:
-    """Convert a float to a fixed-point field element."""
-    # Handle negative values via modular arithmetic
-    scaled = int(round(value * FIXED_POINT_SCALE))
+    """Convert a float to a fixed-point field element.
+    
+    Uses half-up rounding (consistent with GELU coefficient truncation).
+    NOT bankers rounding (Python's default round()).
+    """
+    import math
+    scaled = math.floor(value * FIXED_POINT_SCALE + 0.5)
     return Fr(scaled)
 
 
@@ -79,10 +87,23 @@ class TDAGadgets:
     # Arithmetic helpers
     # -----------------------------------------------------------------
 
-    def _get_val(self, wire: int) -> Fr:
-        """Get wire value, defaulting to zero if unset."""
+    def _get_val(self, wire: int, strict: bool = False) -> Fr:
+        """Get wire value, defaulting to zero if unset.
+        
+        Args:
+            wire: Wire index.
+            strict: If True, raise ValueError on unset wires instead
+                    of silently returning zero. Use for debugging.
+        """
         v = self.cc.wires[wire].value
-        return v if v is not None else Fr.zero()
+        if v is not None:
+            return v
+        if strict:
+            raise ValueError(
+                f"Wire {wire} ({self.cc.wires[wire].name}) has no value assigned. "
+                "This usually means a witness assignment is missing."
+            )
+        return Fr.zero()
 
     def sub(self, a: int, b: int) -> int:
         """
@@ -198,7 +219,13 @@ class TDAGadgets:
 
         Gate cost: n_bits boolean + n_bits const + n_bits mul +
                    (n_bits-1) add + 1 assert_equal ≈ 3·n_bits + 1.
+        
+        Note: Only supports non-negative field elements (values in
+        [0, MODULUS/2)). Negative fixed-point values (upper field half)
+        will fail the prover-side check.
         """
+        if n_bits <= 0:
+            raise ValueError(f"range_check: n_bits must be > 0, got {n_bits}")
         val = self._get_val(wire)
         # Convert from Montgomery to raw integer for bit decomposition
         int_val = val.to_int()
