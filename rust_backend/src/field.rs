@@ -77,6 +77,12 @@ impl Fr {
         self.mont_mul(&one).limbs
     }
 
+    /// Return the raw Montgomery-encoded limbs.
+    /// Used for the Python `.value` property (internal representation).
+    pub fn to_mont_raw(&self) -> [u64; 4] {
+        self.limbs
+    }
+
     /// Convert to a Python-compatible big integer (as a string for large values).
     pub fn to_int_string(&self) -> String {
         let raw = self.to_raw();

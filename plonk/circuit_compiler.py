@@ -314,9 +314,9 @@ class CircuitCompiler:
         Gate layout (5 gates per neuron):
           Gate 1 (GELU_SQUARE): x * x = sq
           Gate 2 (GELU_CUBIC):  sq * x = cub
-          Gate 3 (GELU_OUTPUT): a_coeff * x - partial1 = 0  (scaled linear term)
-          Gate 4 (GELU_OUTPUT): partial1 + b_coeff * sq - partial2 = 0
-          Gate 5 (GELU_OUTPUT): partial2 + c_coeff * cub - output = 0
+          Gate 3 (GELU_OUTPUT): a_coeff * x + b_coeff * sq = p_merged
+          Gate 4 (GELU_OUTPUT): p_merged + c_coeff * cub = scaled
+          Gate 5 (MUL):         scaled * SCALE_INV = output (rescale)
 
         The output is rescaled back to base units (divided by SCALE)
         so downstream layers receive unscaled values.
@@ -365,17 +365,20 @@ class CircuitCompiler:
         self._add_gate(g2)
         gates.append(g2)
 
-        # Gate 3: partial1 = a_coeff * x
-        # Constraint: a_coeff * a - c = 0  →  q_L = a_coeff, q_O = -1
-        p1_wire = self._new_wire(f"gelu_p1_L{layer_idx}_N{neuron_idx}")
-        p1_val = a_coeff * x_val
-        self._set_wire_value(p1_wire, p1_val)
+        # Gate 3 (MERGED): p_merged = a_coeff * x + b_coeff * sq
+        # PLONK: q_L*a + q_R*b + q_O*c = 0
+        # → a_coeff*x + b_coeff*sq + (-1)*p_merged = 0
+        # Merges old gates 3+4, eliminating intermediate p1 wire.
+        p_merged_wire = self._new_wire(f"gelu_pm_L{layer_idx}_N{neuron_idx}")
+        p_merged_val = a_coeff * x_val + b_coeff * sq_val
+        self._set_wire_value(p_merged_wire, p_merged_val)
         g3 = Gate(
             gate_type=GateType.GELU_OUTPUT,
             left=input_wire,
-            right=input_wire,   # unused
-            output=p1_wire,
+            right=sq_wire,
+            output=p_merged_wire,
             q_L=a_coeff,
+            q_R=b_coeff,
             q_O=NEG_ONE,
             layer_idx=layer_idx,
             neuron_idx=neuron_idx,
@@ -383,36 +386,14 @@ class CircuitCompiler:
         self._add_gate(g3)
         gates.append(g3)
 
-        # Gate 4: partial2 = partial1 + b_coeff * sq
-        # Constraint: q_L * partial1 + q_R * sq - q_O * partial2 = 0
-        #   q_L = 1, q_R = b_coeff, q_O = -1
-        # But standard PLONK gate: q_L*a + q_R*b + q_O*c + q_M*a*b + q_C = 0
-        # We need: 1*partial1 + b_coeff*sq + (-1)*partial2 = 0
-        p2_wire = self._new_wire(f"gelu_p2_L{layer_idx}_N{neuron_idx}")
-        p2_val = p1_val + b_coeff * sq_val
-        self._set_wire_value(p2_wire, p2_val)
+        # Gate 4: gelu_scaled = p_merged + c_coeff * cub
+        # 1*p_merged + c_coeff*cub + (-1)*gelu_scaled = 0
+        scaled_wire = self._new_wire(f"gelu_scaled_L{layer_idx}_N{neuron_idx}")
+        scaled_val = p_merged_val + c_coeff * cub_val
+        self._set_wire_value(scaled_wire, scaled_val)
         g4 = Gate(
             gate_type=GateType.GELU_OUTPUT,
-            left=p1_wire,
-            right=sq_wire,
-            output=p2_wire,
-            q_L=Fr.one(),
-            q_R=b_coeff,
-            q_O=NEG_ONE,
-            layer_idx=layer_idx,
-            neuron_idx=neuron_idx,
-        )
-        self._add_gate(g4)
-        gates.append(g4)
-
-        # Gate 5: gelu_scaled = partial2 + c_coeff * cub
-        # Same structure: 1*partial2 + c_coeff*cub + (-1)*gelu_scaled = 0
-        scaled_wire = self._new_wire(f"gelu_scaled_L{layer_idx}_N{neuron_idx}")
-        scaled_val = p2_val + c_coeff * cub_val
-        self._set_wire_value(scaled_wire, scaled_val)
-        g5 = Gate(
-            gate_type=GateType.GELU_OUTPUT,
-            left=p2_wire,
+            left=p_merged_wire,
             right=cub_wire,
             output=scaled_wire,
             q_L=Fr.one(),
@@ -421,17 +402,16 @@ class CircuitCompiler:
             layer_idx=layer_idx,
             neuron_idx=neuron_idx,
         )
-        self._add_gate(g5)
-        gates.append(g5)
+        self._add_gate(g4)
+        gates.append(g4)
 
-        # Gate 6 (FIX-H1): Rescale back to base units
+        # Gate 5: Rescale back to base units
         # output = gelu_scaled * SCALE_INV
-        # Constraint: q_M * a * b + q_O * c = 0 → a*b = c
         out_val = scaled_val * SCALE_INV
         self._set_wire_value(output_wire, out_val)
-        g6 = self._add_mul_gate(scaled_wire, self._const_wire(SCALE_INV, layer_idx, neuron_idx),
+        g5 = self._add_mul_gate(scaled_wire, self._const_wire(SCALE_INV, layer_idx, neuron_idx),
                                 output_wire, layer_idx, neuron_idx)
-        gates.append(g6)
+        gates.append(g5)
 
         return gates
 
