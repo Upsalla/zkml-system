@@ -64,16 +64,19 @@ impl PyFr {
         }
     }
 
-    fn __add__(&self, other: &PyFr) -> PyFr {
-        PyFr { inner: self.inner + other.inner }
+    fn __add__(&self, other: &Bound<'_, PyAny>) -> PyResult<PyFr> {
+        let rhs = if let Ok(pf) = other.extract::<PyFr>() { pf.inner } else { PyFr::new(other)?.inner };
+        Ok(PyFr { inner: self.inner + rhs })
     }
 
-    fn __sub__(&self, other: &PyFr) -> PyFr {
-        PyFr { inner: self.inner - other.inner }
+    fn __sub__(&self, other: &Bound<'_, PyAny>) -> PyResult<PyFr> {
+        let rhs = if let Ok(pf) = other.extract::<PyFr>() { pf.inner } else { PyFr::new(other)?.inner };
+        Ok(PyFr { inner: self.inner - rhs })
     }
 
-    fn __mul__(&self, other: &PyFr) -> PyFr {
-        PyFr { inner: self.inner * other.inner }
+    fn __mul__(&self, other: &Bound<'_, PyAny>) -> PyResult<PyFr> {
+        let rhs = if let Ok(pf) = other.extract::<PyFr>() { pf.inner } else { PyFr::new(other)?.inner };
+        Ok(PyFr { inner: self.inner * rhs })
     }
 
     fn __neg__(&self) -> PyFr {
@@ -104,16 +107,49 @@ impl PyFr {
         !self.inner.is_zero()
     }
 
-    /// Compute self^exp mod r.
-    fn __pow__(&self, exp: u64, modulo: Option<u64>) -> PyResult<PyFr> {
+    /// Compute self^exp mod r.  Accepts arbitrary-size Python ints (up to 256 bits).
+    fn __pow__(&self, exp: &Bound<'_, PyAny>, modulo: Option<&Bound<'_, PyAny>>) -> PyResult<PyFr> {
         if modulo.is_some() {
             return Err(PyValueError::new_err(
                 "RustFr.__pow__: 3-arg pow(a, b, mod) is not supported; field modulus is implicit"
             ));
         }
-        let exp_limbs = [exp, 0, 0, 0];
+        // Try fast path: fits in u64
+        if let Ok(small) = exp.extract::<u64>() {
+            let exp_limbs = [small, 0, 0, 0];
+            return Ok(PyFr { inner: self.inner.pow(exp_limbs) });
+        }
+        // Slow path: extract 4 limbs from arbitrary Python int
+        let mask: u64 = u64::MAX;
+        let l0: u64 = exp.call_method1("__and__", (mask,))?.extract()?;
+        let s1 = exp.call_method1("__rshift__", (64_u32,))?;
+        let l1: u64 = s1.call_method1("__and__", (mask,))?.extract()?;
+        let s2 = exp.call_method1("__rshift__", (128_u32,))?;
+        let l2: u64 = s2.call_method1("__and__", (mask,))?.extract()?;
+        let s3 = exp.call_method1("__rshift__", (192_u32,))?;
+        let l3: u64 = s3.call_method1("__and__", (mask,))?.extract()?;
+        let exp_limbs = [l0, l1, l2, l3];
         Ok(PyFr { inner: self.inner.pow(exp_limbs) })
     }
+
+    /// Comparison: self < other.  Handles both RustFr and int operands.
+    fn __lt__(&self, other: &Bound<'_, PyAny>) -> PyResult<bool> {
+        let other_inner = if let Ok(pf) = other.extract::<PyFr>() {
+            pf.inner
+        } else {
+            PyFr::new(other)?.inner
+        };
+        let a = self.inner.to_raw();
+        let b = other_inner.to_raw();
+        // Compare 256-bit values in big-endian limb order (MSB first)
+        for i in (0..4).rev() {
+            if a[i] != b[i] {
+                return Ok(a[i] < b[i]);
+            }
+        }
+        Ok(false) // equal
+    }
+
 
     /// Multiplicative inverse. Raises ZeroDivisionError if zero.
     fn inverse(&self) -> PyResult<PyFr> {

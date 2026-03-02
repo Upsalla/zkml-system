@@ -26,7 +26,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from zkml_system.crypto.bn254.field import Fr
+from zkml_system.crypto.bn254.fr_adapter import Fr
 from zkml_system.crypto.bn254.curve import G1Point, G2Point
 from zkml_system.crypto.bn254.pairing import verify_pairing_equation
 from zkml_system.plonk.polynomial import Polynomial

@@ -39,7 +39,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from zkml_system.crypto.bn254.field import Fr
+from zkml_system.crypto.bn254.fr_adapter import Fr
 from zkml_system.plonk.circuit_compiler import (
     CircuitCompiler, Gate, GateType, Wire, CompiledCircuit
 )
