@@ -8,12 +8,14 @@
 
 use pyo3::prelude::*;
 use pyo3::exceptions::{PyZeroDivisionError, PyValueError};
+use pyo3::types::PyTuple;
 
 mod field;
 mod curve;
 mod polynomial;
 mod kzg;
 use field::Fr;
+use curve::Fp;
 
 /// Python-visible wrapper for the Rust Fr field element.
 #[pyclass(name = "RustFr")]
@@ -430,6 +432,38 @@ impl PyPolynomial {
 
 
 // =============================================================================
+// Helpers: u64[4] <-> Python int
+// =============================================================================
+
+/// Convert 4 little-endian u64 limbs to a Python int.
+fn limbs_to_pyint(py: Python<'_>, limbs: &[u64; 4]) -> PyResult<PyObject> {
+    // Construct: l0 + l1*2^64 + l2*2^128 + l3*2^192
+    let l0 = limbs[0].into_pyobject(py)?.into_any().unbind();
+    let l1 = limbs[1].into_pyobject(py)?.into_any().unbind();
+    let l2 = limbs[2].into_pyobject(py)?.into_any().unbind();
+    let l3 = limbs[3].into_pyobject(py)?.into_any().unbind();
+    let result = l0.bind(py)
+        .call_method1("__add__", (l1.bind(py).call_method1("__lshift__", (64_u32,))?,))?
+        .call_method1("__add__", (l2.bind(py).call_method1("__lshift__", (128_u32,))?,))?
+        .call_method1("__add__", (l3.bind(py).call_method1("__lshift__", (192_u32,))?,))?;
+    Ok(result.unbind())
+}
+
+/// Extract 4 little-endian u64 limbs from a Python int.
+fn pyint_to_limbs(val: &Bound<'_, PyAny>) -> PyResult<[u64; 4]> {
+    let mask: u64 = u64::MAX;
+    let l0: u64 = val.call_method1("__and__", (mask,))?.extract()?;
+    let s1 = val.call_method1("__rshift__", (64_u32,))?;
+    let l1: u64 = s1.call_method1("__and__", (mask,))?.extract()?;
+    let s2 = val.call_method1("__rshift__", (128_u32,))?;
+    let l2: u64 = s2.call_method1("__and__", (mask,))?.extract()?;
+    let s3 = val.call_method1("__rshift__", (192_u32,))?;
+    let l3: u64 = s3.call_method1("__and__", (mask,))?.extract()?;
+    Ok([l0, l1, l2, l3])
+}
+
+
+// =============================================================================
 // PyG1Point — BN254 G1 Elliptic Curve Point
 // =============================================================================
 
@@ -498,6 +532,37 @@ impl PyG1Point {
         } else {
             "RustG1Point(...)".to_string()
         }
+    }
+
+    /// Convert to affine coordinates. Returns (x, y) as Python ints, or None for identity.
+    fn to_affine(&self, py: Python<'_>) -> PyResult<PyObject> {
+        match self.inner.to_affine() {
+            Some((x_fp, y_fp)) => {
+                let x_limbs = x_fp.to_raw();
+                let y_limbs = y_fp.to_raw();
+                // Convert [u64; 4] to Python int (little-endian limb order)
+                let x_int = limbs_to_pyint(py, &x_limbs)?;
+                let y_int = limbs_to_pyint(py, &y_limbs)?;
+                Ok(PyTuple::new(py, &[x_int, y_int])?.into_any().unbind())
+            }
+            None => Ok(py.None()),
+        }
+    }
+
+    /// Create a G1 point from affine coordinates (x, y) as Python ints.
+    #[staticmethod]
+    fn from_affine(x: &Bound<'_, PyAny>, y: &Bound<'_, PyAny>) -> PyResult<PyG1Point> {
+        let x_limbs = pyint_to_limbs(x)?;
+        let y_limbs = pyint_to_limbs(y)?;
+        let x_fp = Fp::from_raw(x_limbs);
+        let y_fp = Fp::from_raw(y_limbs);
+        Ok(PyG1Point {
+            inner: curve::G1Point {
+                x: x_fp,
+                y: y_fp,
+                z: Fp::ONE,
+            },
+        })
     }
 }
 

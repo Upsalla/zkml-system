@@ -97,8 +97,8 @@ def commit(poly: Polynomial, srs: TrustedSetup) -> G1Point:
     """
     Commit to a polynomial: C = Σ cᵢ · [τⁱ]₁.
 
-    This is a multi-scalar multiplication (MSM) of the polynomial
-    coefficients with the SRS G1 powers.
+    Uses Rust MSM (Pippenger) when available for ~10-50x speedup,
+    falls back to Python scalar-mul loop.
 
     Args:
         poly: The polynomial to commit to.
@@ -115,12 +115,48 @@ def commit(poly: Polynomial, srs: TrustedSetup) -> G1Point:
             f"Polynomial degree {poly.degree()} exceeds SRS max {srs.max_degree}"
         )
 
-    # MSM: C = Σ cᵢ · [τⁱ]₁
+    # Try Rust MSM path
+    try:
+        return _commit_rust_msm(poly, srs)
+    except Exception:
+        pass
+
+    # Python fallback: MSM via loop
     result = G1Point.identity()
     for i, coeff in enumerate(poly.coeffs):
         if not coeff.is_zero():
             result = result + srs.g1_powers[i] * coeff
     return result
+
+
+def _commit_rust_msm(poly: Polynomial, srs: TrustedSetup) -> G1Point:
+    """Rust MSM path for commit(). Converts at type boundaries."""
+    from zkml_rust import RustG1Point, RustFr
+
+    # Convert non-zero coefficients and matching SRS points to Rust types
+    rust_points = []
+    rust_scalars = []
+    for i, coeff in enumerate(poly.coeffs):
+        if not coeff.is_zero():
+            # Convert Python G1Point → RustG1Point via affine coords
+            py_pt = srs.g1_powers[i]
+            aff = py_pt.to_affine()  # returns (Fp, Fp)
+            rust_pt = RustG1Point.from_affine(aff[0].to_int(), aff[1].to_int())
+            rust_points.append(rust_pt)
+            # Convert Fr → RustFr
+            rust_scalars.append(RustFr(coeff.to_int()))
+
+    if not rust_points:
+        return G1Point.identity()
+
+    # MSM in Rust (Pippenger)
+    rust_result = RustG1Point.msm(rust_points, rust_scalars)
+
+    # Convert RustG1Point back to Python G1Point
+    aff = rust_result.to_affine()  # returns (int, int) or None
+    if aff is None:
+        return G1Point.identity()
+    return G1Point.from_affine(aff[0], aff[1])
 
 
 def create_proof(

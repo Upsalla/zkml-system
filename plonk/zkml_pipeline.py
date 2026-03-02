@@ -222,13 +222,13 @@ class ZkMLPipeline:
         # Opening-Proof (vereinfacht)
         # Challenge-Punkt (würde normalerweise via Fiat-Shamir berechnet)
         challenge = Fr(12345)
-        opening_proof_tuple = self.kzg.create_proof(a_poly, challenge.value)
+        opening_proof_tuple = self.kzg.create_proof(a_poly, challenge)
         opening_proof = opening_proof_tuple[0]  # KZGProof
         
         # Evaluierungen am Challenge-Punkt
-        a_eval = Fr(a_poly.evaluate(challenge.value))
-        b_eval = Fr(b_poly.evaluate(challenge.value))
-        c_eval = Fr(c_poly.evaluate(challenge.value))
+        a_eval = a_poly.evaluate(challenge)
+        b_eval = b_poly.evaluate(challenge)
+        c_eval = c_poly.evaluate(challenge)
         
         # Öffentliche Eingaben/Ausgaben
         public_inputs = [circuit.wires[i].value or Fr.zero() 
