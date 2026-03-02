@@ -26,7 +26,7 @@ Usage:
 
 from setuptools import setup, find_packages
 
-VERSION = "2.0.0"
+VERSION = "3.1.0"
 
 setup(
     name="zkml-system",
@@ -34,13 +34,14 @@ setup(
     description="Zero-Knowledge Machine Learning Framework with Interdisciplinary Optimizations",
     long_description=open("README.md", encoding="utf-8").read() if __import__("os").path.exists("README.md") else "",
     long_description_content_type="text/markdown",
-    author="zkML Research Team",
-    author_email="research@zkml.dev",
-    url="https://github.com/zkml/zkml-system",
+    author="Upsalla",
+    author_email="",
+    url="https://github.com/Upsalla/zkml-system",
     packages=find_packages(exclude=["tests", "tests.*", "docs", "docs.*"]),
     python_requires=">=3.9",
     install_requires=[
         "numpy>=1.21.0",
+        "py_ecc>=6.0.0",
         "fastapi>=0.100.0",
         "uvicorn>=0.22.0",
         "pydantic>=2.0.0",

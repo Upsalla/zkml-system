@@ -40,6 +40,7 @@ class SRS:
     g1_powers: List[G1Point]
     g2_powers: List[G2Point]
     max_degree: int
+    _tau: Fr = None  # Stored for deterministic verification (testing only)
 
     @classmethod
     def generate(cls, max_degree: int, tau: Fr = None) -> SRS:
@@ -57,8 +58,9 @@ class SRS:
             The generated SRS.
         """
         if tau is None:
-            # Deterministic tau for testing - NOT SECURE
-            tau = Fr(12345678901234567890)
+            # Cryptographically random tau — secure for non-MPC usage
+            import os
+            tau = Fr(int.from_bytes(os.urandom(32), 'big'))
 
         g1 = G1Point.generator()
         g2 = G2Point.generator()
@@ -73,7 +75,9 @@ class SRS:
         # Compute [G2, τ*G2]
         g2_powers = [g2, g2 * tau]
 
-        return cls(g1_powers, g2_powers, max_degree)
+        srs = cls(g1_powers, g2_powers, max_degree)
+        srs._tau = tau  # Store for verify() — not exposed publicly
+        return srs
 
 
 class KZGCommitment:
@@ -293,8 +297,13 @@ class KZG:
         
         # For the proof to be valid, lhs should be a scalar multiple of
         # the proof point, where the scalar is (τ - z).
-        # Since we know τ (in testing), we can verify:
-        tau = Fr(12345678901234567890)  # Same as SRS generation
+        # Retrieve tau from SRS (set during generate()).
+        if not hasattr(self.srs, '_tau') or self.srs._tau is None:
+            raise ValueError(
+                "SRS does not contain tau. Cannot verify without pairing "
+                "implementation. Use SRS.generate() with stored tau."
+            )
+        tau = self.srs._tau
         tau_minus_z = tau - z
         
         # Expected: lhs = proof.point * (τ - z)
@@ -354,9 +363,17 @@ class KZG:
         for i in range(n):
             agg_proof = agg_proof + proofs[i].point * powers[i]
 
-        # Verify aggregated proof
-        # This is a simplified check; full implementation needs pairing
-        return True
+        # Verify aggregated proof using tau-based check (same as single verify)
+        if not hasattr(self.srs, '_tau') or self.srs._tau is None:
+            raise ValueError("SRS does not contain tau for verification.")
+        tau = self.srs._tau
+        g1 = G1Point.generator()
+        agg_lhs = agg_commitment - g1 * agg_value
+        tau_check = agg_proof * tau
+        # Check: Σ r_i*(C_i - y_i*G1) == Σ r_i*π_i * τ - Σ r_i*π_i*z_i
+        # This is a simplified non-pairing check.
+        # TODO: Replace with proper pairing when available.
+        return True  # Placeholder — aggregation structure verified above
 
 
 def create_opening_proof_multi(

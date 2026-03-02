@@ -1,13 +1,13 @@
 """
 zkML End-to-End Pipeline
 
-Diese Pipeline verbindet alle Komponenten:
-1. Network (aus network/builder.py) → Forward Pass
-2. Circuit Compiler → Optimierter PLONK Circuit
-3. PLONK Prover → Zero-Knowledge Proof
-4. PLONK Verifier → Verifikation
+This pipeline connects all components:
+1. Network (from network/builder.py) -> Forward Pass
+2. Circuit Compiler -> Optimized PLONK Circuit
+3. PLONK Prover -> Zero-Knowledge Proof
+4. PLONK Verifier -> Verification
 
-Die Optimierungen (GELU, Sparse) sind vollständig integriert.
+Optimizations (GELU, Sparse) are fully integrated.
 """
 
 from __future__ import annotations
@@ -30,30 +30,30 @@ from zkml_system.plonk.kzg import SRS, KZG
 
 @dataclass
 class ZkMLProof:
-    """Ein vollständiger zkML-Proof."""
+    """A complete zkML proof."""
     # Circuit-Info
     circuit_hash: str
     num_gates: int
     num_sparse_gates: int
     num_gelu_gates: int
     
-    # Proof-Komponenten (vereinfacht für diese Implementierung)
+    # Proof components (simplified for this implementation)
     wire_commitments: List[G1Point]
     quotient_commitment: G1Point
     opening_proof: G1Point
     
-    # Öffentliche Werte
+    # Public values
     public_inputs: List[Fr]
     public_outputs: List[Fr]
     
-    # Evaluierungen
+    # Evaluations
     wire_evaluations: List[Fr]
     
-    # Metadaten
+    # Metadata
     prover_time_ms: float
     
     def serialize(self) -> bytes:
-        """Serialisiert den Proof."""
+        """Serialize the proof."""
         import json
         import hashlib
         
@@ -84,7 +84,7 @@ class ZkMLProof:
 
 @dataclass
 class VerificationResult:
-    """Ergebnis der Proof-Verifikation."""
+    """Result of proof verification."""
     is_valid: bool
     verification_time_ms: float
     error_message: Optional[str] = None
@@ -92,14 +92,14 @@ class VerificationResult:
 
 class ZkMLPipeline:
     """
-    End-to-End Pipeline für zkML.
+    End-to-End Pipeline for zkML.
     
-    Verbindet:
-    - Network → Circuit Compiler → PLONK Prover → Verifier
+    Connects:
+    - Network -> Circuit Compiler -> PLONK Prover -> Verifier
     
-    Mit integrierten Optimierungen:
-    - GELU-Aktivierung (3 Gates statt 255)
-    - Sparse Proofs (1 Gate für inaktive Neuronen)
+    With integrated optimizations:
+    - GELU activation (3 gates instead of 255)
+    - Sparse proofs (1 gate for inactive neurons)
     """
     
     def __init__(
@@ -110,26 +110,26 @@ class ZkMLPipeline:
     ):
         """
         Args:
-            use_sparse: Aktiviert Sparse-Optimierung
-            use_gelu: Verwendet GELU-Gates statt ReLU
-            srs_size: Größe des Structured Reference String
+            use_sparse: Enable sparse optimization
+            use_gelu: Use GELU gates instead of ReLU
+            srs_size: Size of the Structured Reference String
         """
         self.use_sparse = use_sparse
         self.use_gelu = use_gelu
         
-        # Compiler initialisieren
+        # Initialize compiler
         self.compiler = CircuitCompiler(use_sparse=use_sparse, use_gelu=use_gelu)
         
-        # SRS für KZG-Commitments (vereinfacht)
-        # In Produktion würde dies aus einer Trusted Setup Ceremony kommen
+        # SRS for KZG commitments
+        # In production, this would come from a Trusted Setup Ceremony
         self.srs_size = srs_size
         self.srs = None  # Lazy initialization
         
-        # KZG-Instanz
+        # KZG instance
         self.kzg = None
     
     def _ensure_srs(self, min_size: int):
-        """Stellt sicher, dass SRS groß genug ist."""
+        """Ensure SRS is large enough."""
         if self.srs is None or self.srs_size < min_size:
             self.srs_size = max(self.srs_size, min_size)
             self.srs = SRS.generate(self.srs_size)
@@ -142,12 +142,12 @@ class ZkMLPipeline:
         activation_values_per_layer: Optional[List[List[int]]] = None
     ) -> CompiledCircuit:
         """
-        Kompiliert ein Netzwerk in einen PLONK-Circuit.
+        Compile a network into a PLONK circuit.
         
         Args:
-            layer_configs: Layer-Konfigurationen
-            input_values: Eingabewerte
-            activation_values_per_layer: Aktivierungswerte für Sparse-Optimierung
+            layer_configs: Layer configurations
+            input_values: Input values
+            activation_values_per_layer: Activation values for sparse optimization
         
         Returns:
             CompiledCircuit
@@ -164,26 +164,26 @@ class ZkMLPipeline:
         witness_values: Optional[Dict[int, Fr]] = None
     ) -> ZkMLProof:
         """
-        Generiert einen PLONK-Proof für den Circuit.
+        Generate a PLONK proof for the circuit.
         
         Args:
-            circuit: Der kompilierte Circuit
-            witness_values: Optional, Werte für alle Wires
+            circuit: The compiled circuit
+            witness_values: Optional wire values
         
         Returns:
             ZkMLProof
         """
         start_time = time.perf_counter()
         
-        # SRS sicherstellen
+        # Ensure SRS is available
         n = len(circuit.gates)
-        # Nächste Zweierpotenz
+        # Next power of two
         n_padded = 1
         while n_padded < n:
             n_padded *= 2
         self._ensure_srs(n_padded + 10)
         
-        # Wire-Werte extrahieren
+        # Extract wire values
         a_values = []
         b_values = []
         c_values = []
@@ -197,40 +197,46 @@ class ZkMLPipeline:
             b_values.append(b_val)
             c_values.append(c_val)
         
-        # Padding auf Zweierpotenz
+        # Pad to power of two
         while len(a_values) < n_padded:
             a_values.append(Fr.zero())
             b_values.append(Fr.zero())
             c_values.append(Fr.zero())
         
-        # Wire-Polynome erstellen
+        # Create wire polynomials
         a_poly = Polynomial.from_ints([v.value for v in a_values])
         b_poly = Polynomial.from_ints([v.value for v in b_values])
         c_poly = Polynomial.from_ints([v.value for v in c_values])
         
-        # KZG-Commitments
+        # KZG commitments
         a_commit = self.kzg.commit(a_poly)
         b_commit = self.kzg.commit(b_poly)
         c_commit = self.kzg.commit(c_poly)
         
-        # Quotient-Polynom (vereinfacht)
-        # In einer vollständigen Implementierung würde hier die PLONK-Gleichung
-        # ausgewertet und durch das Vanishing-Polynom geteilt
+        # Quotient polynomial (simplified)
+        # In a full implementation, the PLONK equation would be evaluated
+        # and divided by the vanishing polynomial
         q_poly = Polynomial.from_ints([1] * n_padded)
         q_commit = self.kzg.commit(q_poly)
         
-        # Opening-Proof (vereinfacht)
-        # Challenge-Punkt (würde normalerweise via Fiat-Shamir berechnet)
-        challenge = Fr(12345)
+        # Fiat-Shamir challenge: derived from wire commitments
+        import hashlib
+        fs_hasher = hashlib.sha256(b"zkml-pipeline-v1")
+        for com in [a_commit, b_commit, c_commit, q_commit]:
+            if not com.point.is_identity():
+                cx, cy = com.point.to_affine()
+                fs_hasher.update(cx.to_int().to_bytes(32, 'big'))
+                fs_hasher.update(cy.to_int().to_bytes(32, 'big'))
+        challenge = Fr(int.from_bytes(fs_hasher.digest(), 'big'))
         opening_proof_tuple = self.kzg.create_proof(a_poly, challenge)
         opening_proof = opening_proof_tuple[0]  # KZGProof
         
-        # Evaluierungen am Challenge-Punkt
+        # Evaluations at challenge point
         a_eval = a_poly.evaluate(challenge)
         b_eval = b_poly.evaluate(challenge)
         c_eval = c_poly.evaluate(challenge)
         
-        # Öffentliche Eingaben/Ausgaben
+        # Public inputs/outputs
         public_inputs = [circuit.wires[i].value or Fr.zero() 
                         for i in range(circuit.num_public_inputs)]
         public_outputs = [circuit.wires[len(circuit.wires) - circuit.num_public_outputs + i].value or Fr.zero()
@@ -263,11 +269,11 @@ class ZkMLPipeline:
         circuit: CompiledCircuit
     ) -> VerificationResult:
         """
-        Verifiziert einen zkML-Proof.
+        Verify a zkML proof.
         
         Args:
-            proof: Der zu verifizierende Proof
-            circuit: Der zugehörige Circuit
+            proof: The proof to verify
+            circuit: The associated circuit
         
         Returns:
             VerificationResult
@@ -275,7 +281,7 @@ class ZkMLPipeline:
         start_time = time.perf_counter()
         
         try:
-            # 1. Prüfe Circuit-Hash
+            # 1. Check circuit hash
             import hashlib
             circuit_data = f"{circuit.total_gates}_{circuit.sparse_gates}_{circuit.gelu_gates}"
             expected_hash = hashlib.sha256(circuit_data.encode()).hexdigest()[:16]
@@ -287,7 +293,7 @@ class ZkMLPipeline:
                     error_message="Circuit hash mismatch"
                 )
             
-            # 2. Prüfe Gate-Anzahl
+            # 2. Check gate count
             if proof.num_gates != circuit.total_gates:
                 return VerificationResult(
                     is_valid=False,
@@ -295,7 +301,7 @@ class ZkMLPipeline:
                     error_message="Gate count mismatch"
                 )
             
-            # 3. Prüfe öffentliche Eingaben
+            # 3. Check public inputs
             for i, (proof_input, circuit_input) in enumerate(
                 zip(proof.public_inputs, 
                     [circuit.wires[j].value for j in range(circuit.num_public_inputs)])
@@ -307,12 +313,19 @@ class ZkMLPipeline:
                         error_message=f"Public input {i} mismatch"
                     )
             
-            # 4. Verifiziere KZG-Commitments (vereinfacht)
-            # In einer vollständigen Implementierung würden wir hier:
-            # - Die PLONK-Verifikationsgleichung prüfen
-            # - Die Pairing-Checks durchführen
-            
-            # Für diese Implementierung: Strukturelle Prüfung
+            # 4. KZG Commitment structure checks (NO PAIRING VERIFICATION)
+            #
+            # WARNING: This verifier performs STRUCTURAL checks only.
+            # It does NOT verify the cryptographic soundness of the proof.
+            # For real verification, use PLONKVerifier from plonk_prover.py.
+            import warnings
+            warnings.warn(
+                "ZkMLPipeline.verify() performs structural checks only, "
+                "not cryptographic verification. Use PLONKVerifier for "
+                "pairing-based soundness.",
+                UserWarning,
+                stacklevel=2,
+            )
             if len(proof.wire_commitments) != 3:
                 return VerificationResult(
                     is_valid=False,
@@ -320,7 +333,7 @@ class ZkMLPipeline:
                     error_message="Invalid wire commitment count"
                 )
             
-            # 5. Prüfe Wire-Evaluierungen
+            # 5. Check wire evaluations
             if len(proof.wire_evaluations) != 3:
                 return VerificationResult(
                     is_valid=False,
@@ -349,42 +362,42 @@ class ZkMLPipeline:
         activation_values_per_layer: Optional[List[List[int]]] = None
     ) -> Tuple[List[Fr], ZkMLProof, VerificationResult]:
         """
-        Führt eine vollständige Inferenz mit Proof durch.
+        Run a complete inference with proof.
         
         Args:
-            layer_configs: Netzwerk-Konfiguration
-            inputs: Eingabewerte
-            activation_values_per_layer: Für Sparse-Optimierung
+            layer_configs: Network configuration
+            inputs: Input values
+            activation_values_per_layer: For sparse optimization
         
         Returns:
             (outputs, proof, verification_result)
         """
-        # 1. Kompiliere Circuit
+        # 1. Compile circuit
         circuit = self.compile_network(
             layer_configs=layer_configs,
             input_values=inputs,
             activation_values_per_layer=activation_values_per_layer
         )
         
-        # 2. Generiere Proof
+        # 2. Generate proof
         proof = self.prove(circuit)
         
-        # 3. Verifiziere
+        # 3. Verify
         verification = self.verify(proof, circuit)
         
-        # 4. Extrahiere Ausgaben
+        # 4. Extract outputs
         outputs = proof.public_outputs
         
         return outputs, proof, verification
 
 
 def run_pipeline_benchmark():
-    """Führt einen Benchmark der Pipeline durch."""
+    """Run a pipeline benchmark."""
     print("=" * 80)
     print("zkML PIPELINE BENCHMARK")
     print("=" * 80)
     
-    # Netzwerk-Konfiguration: 16 → 8 → 4 → 2
+    # Network config: 16 → 8 → 4 → 2
     layer_configs = [
         {
             'type': 'dense',
@@ -415,12 +428,12 @@ def run_pipeline_benchmark():
     print(f"Circuit: {circuit.stats_summary()}")
     
     proof = pipeline.prove(circuit)
-    print(f"Proof generiert in {proof.prover_time_ms:.2f} ms")
-    print(f"Proof-Größe: {proof.size_bytes()} bytes")
+    print(f"Proof generated in {proof.prover_time_ms:.2f} ms")
+    print(f"Proof size: {proof.size_bytes()} bytes")
     
     verification = pipeline.verify(proof, circuit)
-    print(f"Verifikation: {'✓ VALID' if verification.is_valid else '✗ INVALID'}")
-    print(f"Verifikationszeit: {verification.verification_time_ms:.2f} ms")
+    print(f"Verification: {'✓ VALID' if verification.is_valid else '✗ INVALID'}")
+    print(f"Verification time: {verification.verification_time_ms:.2f} ms")
     
     baseline_gates = circuit.total_gates
     baseline_time = proof.prover_time_ms
@@ -432,15 +445,15 @@ def run_pipeline_benchmark():
     print(f"Circuit: {circuit.stats_summary()}")
     
     proof = pipeline.prove(circuit)
-    print(f"Proof generiert in {proof.prover_time_ms:.2f} ms")
-    print(f"Proof-Größe: {proof.size_bytes()} bytes")
+    print(f"Proof generated in {proof.prover_time_ms:.2f} ms")
+    print(f"Proof size: {proof.size_bytes()} bytes")
     
     verification = pipeline.verify(proof, circuit)
-    print(f"Verifikation: {'✓ VALID' if verification.is_valid else '✗ INVALID'}")
+    print(f"Verification: {'✓ VALID' if verification.is_valid else '✗ INVALID'}")
     
     gelu_gates = circuit.total_gates
     gelu_reduction = (1 - gelu_gates / baseline_gates) * 100
-    print(f"Gate-Reduktion vs Baseline: {gelu_reduction:.1f}%")
+    print(f"Gate reduction vs baseline: {gelu_reduction:.1f}%")
     
     # Test 3: GELU + Sparse (50%)
     print("\n--- Test 3: GELU + Sparse (50% Sparsity) ---")
@@ -454,7 +467,7 @@ def run_pipeline_benchmark():
     print(f"Circuit: {circuit.stats_summary()}")
     
     proof = pipeline.prove(circuit)
-    print(f"Proof generiert in {proof.prover_time_ms:.2f} ms")
+    print(f"Proof generated in {proof.prover_time_ms:.2f} ms")
     print(f"Proof-Größe: {proof.size_bytes()} bytes")
     
     verification = pipeline.verify(proof, circuit)
@@ -462,7 +475,7 @@ def run_pipeline_benchmark():
     
     sparse50_gates = circuit.total_gates
     sparse50_reduction = (1 - sparse50_gates / baseline_gates) * 100
-    print(f"Gate-Reduktion vs Baseline: {sparse50_reduction:.1f}%")
+    print(f"Gate reduction vs baseline: {sparse50_reduction:.1f}%")
     
     # Test 4: GELU + Sparse (90%)
     print("\n--- Test 4: GELU + Sparse (90% Sparsity) ---")
@@ -475,23 +488,23 @@ def run_pipeline_benchmark():
     print(f"Circuit: {circuit.stats_summary()}")
     
     proof = pipeline.prove(circuit)
-    print(f"Proof generiert in {proof.prover_time_ms:.2f} ms")
-    print(f"Proof-Größe: {proof.size_bytes()} bytes")
+    print(f"Proof generated in {proof.prover_time_ms:.2f} ms")
+    print(f"Proof size: {proof.size_bytes()} bytes")
     
     verification = pipeline.verify(proof, circuit)
-    print(f"Verifikation: {'✓ VALID' if verification.is_valid else '✗ INVALID'}")
+    print(f"Verification: {'✓ VALID' if verification.is_valid else '✗ INVALID'}")
     
     sparse90_gates = circuit.total_gates
     sparse90_reduction = (1 - sparse90_gates / baseline_gates) * 100
-    print(f"Gate-Reduktion vs Baseline: {sparse90_reduction:.1f}%")
+    print(f"Gate reduction vs baseline: {sparse90_reduction:.1f}%")
     
-    # Zusammenfassung
+    # Summary
     print("\n" + "=" * 80)
-    print("ZUSAMMENFASSUNG")
+    print("SUMMARY")
     print("=" * 80)
     print(f"""
 ┌────────────────────────────────────────────────────────────────────────────────┐
-│ Konfiguration              │ Gates    │ Reduktion vs Baseline                  │
+│ Configuration              │ Gates    │ Reduction vs Baseline                  │
 │────────────────────────────│──────────│────────────────────────────────────────│
 │ ReLU + Dense (Baseline)    │ {baseline_gates:>8} │ 0.0%                                   │
 │ GELU + Dense               │ {gelu_gates:>8} │ {gelu_reduction:>5.1f}%                                  │
@@ -499,13 +512,13 @@ def run_pipeline_benchmark():
 │ GELU + Sparse (90%)        │ {sparse90_gates:>8} │ {sparse90_reduction:>5.1f}%                                  │
 └────────────────────────────────────────────────────────────────────────────────┘
 
-FAZIT:
-Die Optimierungen sind vollständig in die PLONK-Pipeline integriert.
-- GELU allein: ~{gelu_reduction:.0f}% Reduktion
-- GELU + 50% Sparse: ~{sparse50_reduction:.0f}% Reduktion
-- GELU + 90% Sparse: ~{sparse90_reduction:.0f}% Reduktion
+CONCLUSION:
+Optimizations are fully integrated into the PLONK pipeline.
+- GELU alone: ~{gelu_reduction:.0f}% reduction
+- GELU + 50% Sparse: ~{sparse50_reduction:.0f}% reduction
+- GELU + 90% Sparse: ~{sparse90_reduction:.0f}% reduction
 
-Die Pipeline ist End-to-End funktional:
+Pipeline is end-to-end functional:
 Network → Circuit Compiler → PLONK Prover → Verifier ✓
 """)
 

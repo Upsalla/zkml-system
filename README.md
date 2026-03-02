@@ -1,44 +1,107 @@
-# zkML System v3.0
+# zkML System
 
-**Production-Ready Zero-Knowledge Machine Learning Proof System**
+Zero-knowledge proofs for verifiable neural network inference over BN254/PLONK.
 
-A complete PLONK-based proof system for verifiable neural network inference on Ethereum.
+## What This Does
 
-## Overview
+zkML compiles neural network inference (dense layers, ReLU, GELU, Conv2D, MaxPool, Argmax) into arithmetic circuits and generates cryptographic proofs that the computation was performed correctly — without revealing model weights or intermediate values.
 
-zkML enables cryptographic verification of machine learning model predictions without revealing the model weights or intermediate computations.
+**Status:** Research prototype. Not audited for production use.
 
-### Key Features
+## Architecture
 
-- **PLONK Proof System**: KZG commitments, polynomial arithmetic
-- **BN254 Cryptography**: Ethereum-compatible
-- **Neural Network Support**: Dense, Conv2D, ReLU, Max-Pooling, Argmax
-- **Advanced Optimizations**:
-  - CSWC: 49-87% reduction for sparse witnesses
-  - Tropical Geometry: 90-96% reduction for max operations
-  - HWWB: 27% reduction for correlated data
+```
+┌──────────────────────────────────────────────────────┐
+│  Network Layer Compilation                           │
+│  (Dense, Conv2D, ReLU, GELU, MaxPool, Argmax)       │
+├──────────────────────────────────────────────────────┤
+│  PLONK Prover / Verifier (5-round protocol)         │
+│  ├─ KZG Polynomial Commitments                      │
+│  ├─ FFT / NTT (Cooley-Tukey)                        │
+│  └─ Fiat-Shamir Transcript                          │
+├──────────────────────────────────────────────────────┤
+│  BN254 Cryptographic Primitives                      │
+│  ├─ Python: Fr, Fp, G1Point, G2Point, Pairing       │
+│  └─ Rust backend (optional): MSM, field arithmetic  │
+└──────────────────────────────────────────────────────┘
+```
+
+## Install
+
+```bash
+# Clone
+git clone https://github.com/Upsalla/zkml-system.git
+cd zkml-system
+
+# Python dependencies
+pip install -e .
+
+# Optional: Rust backend for 5-60x speedup on field ops
+cd rust_backend
+pip install maturin
+maturin develop --release
+cd ..
+```
 
 ## Quick Start
 
 ```python
-from zkml_system.plonk import ZkML, NetworkConfig
+from zkml_system.plonk.plonk_prover import PLONKProver, PLONKVerifier
+from zkml_system.plonk.plonk_kzg import TrustedSetup
+from zkml_system.plonk.circuit_compiler import CircuitCompiler
+from zkml_system.crypto.bn254.fr_adapter import Fr
 
-config = NetworkConfig(
-    name="classifier",
-    layers=[
-        ('dense', {'input_size': 784, 'output_size': 128}),
-        ('relu', {'input_size': 128}),
-        ('dense', {'input_size': 128, 'output_size': 10}),
-        ('argmax', {'input_size': 10})
-    ]
-)
+# 1. Define a circuit: a * b = c
+cc = CircuitCompiler()
+a = cc.add_wire('a', is_public=True)
+b = cc.add_wire('b', is_public=True)
+c = cc.add_wire('c', is_public=True)
+cc.add_mul_gate(a, b, c)
+circuit = cc.compile()
 
-zkml = ZkML(config)
-proof = zkml.prove(input_data)
-is_valid, reason = zkml.verify(proof)
+# 2. Assign witness values
+circuit.wires[a].value = Fr(3)
+circuit.wires[b].value = Fr(5)
+circuit.wires[c].value = Fr(15)
+
+# 3. Generate SRS and prove
+srs = TrustedSetup.generate(max_degree=64)
+prover = PLONKProver(srs)
+proof = prover.prove(circuit)
+
+# 4. Verify
+verifier = PLONKVerifier(srs)
+assert verifier.verify(proof, circuit), "Verification failed"
 ```
 
-## Version
+## Optimizations
 
-v3.0.0 - Complete PLONK refactoring with integrated optimizations
+| Technique | Reduction | Target |
+|---|---|---|
+| CSWC (Compressed Sensing) | 49-87% | Sparse witness vectors |
+| Tropical Geometry | 90-96% | MaxPool / Softmax |
+| HWWB (Haar Wavelet) | ~27% | Correlated data |
+| Rust MSM | 5-60x speedup | Scalar multiplication, field ops |
 
+## Tests
+
+```bash
+# Full suite (100 tests)
+python -m pytest plonk/ crypto/ network/cnn/ -v
+
+# Rust backend only
+cd rust_backend && cargo test
+```
+
+## Project Structure
+
+```
+crypto/bn254/      # BN254 field arithmetic, curve ops, pairing
+plonk/             # PLONK protocol: prover, verifier, KZG, FFT, circuits
+network/cnn/       # Neural network layer compilation to circuits
+rust_backend/      # PyO3/Rust backend for performance-critical ops
+```
+
+## License
+
+MIT — see [LICENSE](LICENSE).

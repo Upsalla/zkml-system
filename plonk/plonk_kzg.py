@@ -68,8 +68,9 @@ class TrustedSetup:
             TrustedSetup with SRS for KZG commitments.
         """
         if tau is None:
-            # Deterministic for reproducible tests — NEVER use in production
-            tau = Fr(12345)
+            # Cryptographically random tau — secure for non-MPC usage
+            import os
+            tau = Fr(int.from_bytes(os.urandom(32), 'big'))
 
         g1 = G1Point.generator()
         g2 = G2Point.generator()
