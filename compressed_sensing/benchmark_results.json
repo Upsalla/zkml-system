@@ -1,0 +1,377 @@
+[
+  {
+    "witness_size": 500,
+    "sparsity": 0.0,
+    "standard": {
+      "method": "standard",
+      "witness_size": 500,
+      "sparsity": 0.0,
+      "prove_time_ms": 0.23293495178222656,
+      "verify_time_ms": 0.10633468627929688,
+      "proof_size_bytes": 16032
+    },
+    "cswc": {
+      "method": "cswc",
+      "witness_size": 500,
+      "sparsity": 0.0,
+      "prove_time_ms": 85.65354347229004,
+      "verify_time_ms": 90.49057960510254,
+      "proof_size_bytes": 19144
+    },
+    "improvements": {
+      "size_reduction_pct": -19.411177644710587,
+      "prove_time_ratio": 367.71443193449335,
+      "verify_time_ratio": 850.9977578475336
+    }
+  },
+  {
+    "witness_size": 500,
+    "sparsity": 0.3,
+    "standard": {
+      "method": "standard",
+      "witness_size": 500,
+      "sparsity": 0.3,
+      "prove_time_ms": 0.17189979553222656,
+      "verify_time_ms": 0.10347366333007812,
+      "proof_size_bytes": 16032
+    },
+    "cswc": {
+      "method": "cswc",
+      "witness_size": 500,
+      "sparsity": 0.3,
+      "prove_time_ms": 69.20433044433594,
+      "verify_time_ms": 73.9431381225586,
+      "proof_size_bytes": 13744
+    },
+    "improvements": {
+      "size_reduction_pct": 14.271457085828343,
+      "prove_time_ratio": 402.58529819694866,
+      "verify_time_ratio": 714.6082949308756
+    }
+  },
+  {
+    "witness_size": 500,
+    "sparsity": 0.5,
+    "standard": {
+      "method": "standard",
+      "witness_size": 500,
+      "sparsity": 0.5,
+      "prove_time_ms": 0.2002716064453125,
+      "verify_time_ms": 0.13971328735351562,
+      "proof_size_bytes": 16032
+    },
+    "cswc": {
+      "method": "cswc",
+      "witness_size": 500,
+      "sparsity": 0.5,
+      "prove_time_ms": 52.298545837402344,
+      "verify_time_ms": 54.698944091796875,
+      "proof_size_bytes": 10144
+    },
+    "improvements": {
+      "size_reduction_pct": 36.72654690618763,
+      "prove_time_ratio": 261.1380952380952,
+      "verify_time_ratio": 391.5085324232082
+    }
+  },
+  {
+    "witness_size": 500,
+    "sparsity": 0.7,
+    "standard": {
+      "method": "standard",
+      "witness_size": 500,
+      "sparsity": 0.7,
+      "prove_time_ms": 0.1652240753173828,
+      "verify_time_ms": 0.10085105895996094,
+      "proof_size_bytes": 16032
+    },
+    "cswc": {
+      "method": "cswc",
+      "witness_size": 500,
+      "sparsity": 0.7,
+      "prove_time_ms": 31.205177307128906,
+      "verify_time_ms": 31.306982040405273,
+      "proof_size_bytes": 6544
+    },
+    "improvements": {
+      "size_reduction_pct": 59.181636726546905,
+      "prove_time_ratio": 188.86580086580088,
+      "verify_time_ratio": 310.4278959810875
+    }
+  },
+  {
+    "witness_size": 500,
+    "sparsity": 0.9,
+    "standard": {
+      "method": "standard",
+      "witness_size": 500,
+      "sparsity": 0.9,
+      "prove_time_ms": 0.17499923706054688,
+      "verify_time_ms": 0.10061264038085938,
+      "proof_size_bytes": 16032
+    },
+    "cswc": {
+      "method": "cswc",
+      "witness_size": 500,
+      "sparsity": 0.9,
+      "prove_time_ms": 8.90803337097168,
+      "verify_time_ms": 8.145809173583984,
+      "proof_size_bytes": 2944
+    },
+    "improvements": {
+      "size_reduction_pct": 81.63672654690619,
+      "prove_time_ratio": 50.903269754768395,
+      "verify_time_ratio": 80.96208530805687
+    }
+  },
+  {
+    "witness_size": 1000,
+    "sparsity": 0.0,
+    "standard": {
+      "method": "standard",
+      "witness_size": 1000,
+      "sparsity": 0.0,
+      "prove_time_ms": 0.31495094299316406,
+      "verify_time_ms": 0.21409988403320312,
+      "proof_size_bytes": 32032
+    },
+    "cswc": {
+      "method": "cswc",
+      "witness_size": 1000,
+      "sparsity": 0.0,
+      "prove_time_ms": 467.88644790649414,
+      "verify_time_ms": 342.1287536621094,
+      "proof_size_bytes": 37144
+    },
+    "improvements": {
+      "size_reduction_pct": -15.959040959040948,
+      "prove_time_ratio": 1485.5851627554882,
+      "verify_time_ratio": 1597.9866369710467
+    }
+  },
+  {
+    "witness_size": 1000,
+    "sparsity": 0.3,
+    "standard": {
+      "method": "standard",
+      "witness_size": 1000,
+      "sparsity": 0.3,
+      "prove_time_ms": 0.29158592224121094,
+      "verify_time_ms": 0.20384788513183594,
+      "proof_size_bytes": 32032
+    },
+    "cswc": {
+      "method": "cswc",
+      "witness_size": 1000,
+      "sparsity": 0.3,
+      "prove_time_ms": 257.9829692840576,
+      "verify_time_ms": 267.20309257507324,
+      "proof_size_bytes": 26344
+    },
+    "improvements": {
+      "size_reduction_pct": 17.757242757242754,
+      "prove_time_ratio": 884.7579721995094,
+      "verify_time_ratio": 1310.7964912280702
+    }
+  },
+  {
+    "witness_size": 1000,
+    "sparsity": 0.5,
+    "standard": {
+      "method": "standard",
+      "witness_size": 1000,
+      "sparsity": 0.5,
+      "prove_time_ms": 0.4677772521972656,
+      "verify_time_ms": 0.37169456481933594,
+      "proof_size_bytes": 32032
+    },
+    "cswc": {
+      "method": "cswc",
+      "witness_size": 1000,
+      "sparsity": 0.5,
+      "prove_time_ms": 172.79863357543945,
+      "verify_time_ms": 184.83519554138184,
+      "proof_size_bytes": 19144
+    },
+    "improvements": {
+      "size_reduction_pct": 40.234765234765234,
+      "prove_time_ratio": 369.4036697247706,
+      "verify_time_ratio": 497.2771007055805
+    }
+  },
+  {
+    "witness_size": 1000,
+    "sparsity": 0.7,
+    "standard": {
+      "method": "standard",
+      "witness_size": 1000,
+      "sparsity": 0.7,
+      "prove_time_ms": 0.2663135528564453,
+      "verify_time_ms": 0.23221969604492188,
+      "proof_size_bytes": 32032
+    },
+    "cswc": {
+      "method": "cswc",
+      "witness_size": 1000,
+      "sparsity": 0.7,
+      "prove_time_ms": 115.06867408752441,
+      "verify_time_ms": 139.1758918762207,
+      "proof_size_bytes": 11944
+    },
+    "improvements": {
+      "size_reduction_pct": 62.71228771228772,
+      "prove_time_ratio": 432.07967770814685,
+      "verify_time_ratio": 599.3285420944559
+    }
+  },
+  {
+    "witness_size": 1000,
+    "sparsity": 0.9,
+    "standard": {
+      "method": "standard",
+      "witness_size": 1000,
+      "sparsity": 0.9,
+      "prove_time_ms": 0.33593177795410156,
+      "verify_time_ms": 0.3178119659423828,
+      "proof_size_bytes": 32032
+    },
+    "cswc": {
+      "method": "cswc",
+      "witness_size": 1000,
+      "sparsity": 0.9,
+      "prove_time_ms": 35.218238830566406,
+      "verify_time_ms": 41.655540466308594,
+      "proof_size_bytes": 4744
+    },
+    "improvements": {
+      "size_reduction_pct": 85.18981018981019,
+      "prove_time_ratio": 104.8374733853797,
+      "verify_time_ratio": 131.06976744186048
+    }
+  },
+  {
+    "witness_size": 2000,
+    "sparsity": 0.0,
+    "standard": {
+      "method": "standard",
+      "witness_size": 2000,
+      "sparsity": 0.0,
+      "prove_time_ms": 0.6194114685058594,
+      "verify_time_ms": 0.431060791015625,
+      "proof_size_bytes": 64032
+    },
+    "cswc": {
+      "method": "cswc",
+      "witness_size": 2000,
+      "sparsity": 0.0,
+      "prove_time_ms": 1629.5504570007324,
+      "verify_time_ms": 1386.8467807769775,
+      "proof_size_bytes": 73144
+    },
+    "improvements": {
+      "size_reduction_pct": -14.230384807596197,
+      "prove_time_ratio": 2630.8044649730564,
+      "verify_time_ratio": 3217.2881637168143
+    }
+  },
+  {
+    "witness_size": 2000,
+    "sparsity": 0.3,
+    "standard": {
+      "method": "standard",
+      "witness_size": 2000,
+      "sparsity": 0.3,
+      "prove_time_ms": 0.5397796630859375,
+      "verify_time_ms": 0.45990943908691406,
+      "proof_size_bytes": 64032
+    },
+    "cswc": {
+      "method": "cswc",
+      "witness_size": 2000,
+      "sparsity": 0.3,
+      "prove_time_ms": 1123.4817504882812,
+      "verify_time_ms": 1155.872106552124,
+      "proof_size_bytes": 51544
+    },
+    "improvements": {
+      "size_reduction_pct": 19.50274862568716,
+      "prove_time_ratio": 2081.3710247349823,
+      "verify_time_ratio": 2513.260238465526
+    }
+  },
+  {
+    "witness_size": 2000,
+    "sparsity": 0.5,
+    "standard": {
+      "method": "standard",
+      "witness_size": 2000,
+      "sparsity": 0.5,
+      "prove_time_ms": 0.6153583526611328,
+      "verify_time_ms": 0.4639625549316406,
+      "proof_size_bytes": 64032
+    },
+    "cswc": {
+      "method": "cswc",
+      "witness_size": 2000,
+      "sparsity": 0.5,
+      "prove_time_ms": 759.1855525970459,
+      "verify_time_ms": 752.2516250610352,
+      "proof_size_bytes": 37144
+    },
+    "improvements": {
+      "size_reduction_pct": 41.991504247876065,
+      "prove_time_ratio": 1233.7291747384734,
+      "verify_time_ratio": 1621.3627954779033
+    }
+  },
+  {
+    "witness_size": 2000,
+    "sparsity": 0.7,
+    "standard": {
+      "method": "standard",
+      "witness_size": 2000,
+      "sparsity": 0.7,
+      "prove_time_ms": 0.5793571472167969,
+      "verify_time_ms": 0.42176246643066406,
+      "proof_size_bytes": 64032
+    },
+    "cswc": {
+      "method": "cswc",
+      "witness_size": 2000,
+      "sparsity": 0.7,
+      "prove_time_ms": 411.95201873779297,
+      "verify_time_ms": 411.7703437805176,
+      "proof_size_bytes": 22744
+    },
+    "improvements": {
+      "size_reduction_pct": 64.48025987006496,
+      "prove_time_ratio": 711.0502057613169,
+      "verify_time_ratio": 976.3086489542114
+    }
+  },
+  {
+    "witness_size": 2000,
+    "sparsity": 0.9,
+    "standard": {
+      "method": "standard",
+      "witness_size": 2000,
+      "sparsity": 0.9,
+      "prove_time_ms": 0.6673336029052734,
+      "verify_time_ms": 0.42128562927246094,
+      "proof_size_bytes": 64032
+    },
+    "cswc": {
+      "method": "cswc",
+      "witness_size": 2000,
+      "sparsity": 0.9,
+      "prove_time_ms": 173.10547828674316,
+      "verify_time_ms": 173.45643043518066,
+      "proof_size_bytes": 8344
+    },
+    "improvements": {
+      "size_reduction_pct": 86.96901549225387,
+      "prove_time_ratio": 259.39871382636653,
+      "verify_time_ratio": 411.73118279569894
+    }
+  }
+]

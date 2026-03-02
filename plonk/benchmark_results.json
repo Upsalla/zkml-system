@@ -1,0 +1,255 @@
+{
+  "landmark_scaling": [
+    {
+      "landmarks": 5,
+      "total_gates": 2273,
+      "distance_gates": 1835,
+      "boundary_gates": 438,
+      "wires": 2413,
+      "pairs": 10,
+      "simplices": 25,
+      "time_ms": 25.5,
+      "valid": true
+    },
+    {
+      "landmarks": 8,
+      "total_gates": 4327,
+      "distance_gates": 3923,
+      "boundary_gates": 404,
+      "wires": 4562,
+      "pairs": 10,
+      "simplices": 92,
+      "time_ms": 47.7,
+      "valid": true
+    },
+    {
+      "landmarks": 10,
+      "total_gates": 6190,
+      "distance_gates": 5770,
+      "boundary_gates": 420,
+      "wires": 6486,
+      "pairs": 10,
+      "simplices": 175,
+      "time_ms": 63.2,
+      "valid": true
+    },
+    {
+      "landmarks": 12,
+      "total_gates": 8361,
+      "distance_gates": 7981,
+      "boundary_gates": 380,
+      "wires": 8719,
+      "pairs": 10,
+      "simplices": 298,
+      "time_ms": 90.6,
+      "valid": true
+    },
+    {
+      "landmarks": 15,
+      "total_gates": 12396,
+      "distance_gates": 11980,
+      "boundary_gates": 416,
+      "wires": 12844,
+      "pairs": 10,
+      "simplices": 575,
+      "time_ms": 146.0,
+      "valid": true
+    },
+    {
+      "landmarks": 18,
+      "total_gates": 17190,
+      "distance_gates": 16798,
+      "boundary_gates": 392,
+      "wires": 17728,
+      "pairs": 10,
+      "simplices": 987,
+      "time_ms": 217.3,
+      "valid": true
+    },
+    {
+      "landmarks": 20,
+      "total_gates": 20863,
+      "distance_gates": 20465,
+      "boundary_gates": 398,
+      "wires": 21461,
+      "pairs": 10,
+      "simplices": 1350,
+      "time_ms": 271.2,
+      "valid": true
+    }
+  ],
+  "model_scaling": [
+    {
+      "name": "Tiny (3\u21922)",
+      "layer_sizes": [
+        3,
+        2
+      ],
+      "params": 6,
+      "neurons": 3,
+      "landmarks_used": 3,
+      "total_gates": 269,
+      "wires": 282,
+      "pairs": 3,
+      "time_ms": 3.0,
+      "valid": true
+    },
+    {
+      "name": "Small (10\u21925\u21923)",
+      "layer_sizes": [
+        10,
+        5,
+        3
+      ],
+      "params": 65,
+      "neurons": 15,
+      "landmarks_used": 15,
+      "total_gates": 2572,
+      "wires": 2640,
+      "pairs": 10,
+      "time_ms": 45.7,
+      "valid": true
+    },
+    {
+      "name": "Medium (20\u219210\u21925)",
+      "layer_sizes": [
+        20,
+        10,
+        5
+      ],
+      "params": 250,
+      "neurons": 30,
+      "landmarks_used": 15,
+      "total_gates": 4532,
+      "wires": 4676,
+      "pairs": 10,
+      "time_ms": 64.1,
+      "valid": true
+    },
+    {
+      "name": "Large (50\u219230\u219210)",
+      "layer_sizes": [
+        50,
+        30,
+        10
+      ],
+      "params": 1800,
+      "neurons": 80,
+      "landmarks_used": 15,
+      "total_gates": 12338,
+      "wires": 12782,
+      "pairs": 10,
+      "time_ms": 144.7,
+      "valid": true
+    },
+    {
+      "name": "XL (100\u219250\u219220)",
+      "layer_sizes": [
+        100,
+        50,
+        20
+      ],
+      "params": 6000,
+      "neurons": 150,
+      "landmarks_used": 15,
+      "total_gates": 20120,
+      "wires": 20864,
+      "pairs": 10,
+      "time_ms": 236.5,
+      "valid": true
+    }
+  ],
+  "pair_scaling": [
+    {
+      "pairs_verified": 1,
+      "total_gates": 11963,
+      "boundary_gates": 17,
+      "wires": 12425,
+      "time_ms": 150.7,
+      "valid": true
+    },
+    {
+      "pairs_verified": 3,
+      "total_gates": 12009,
+      "boundary_gates": 63,
+      "wires": 12467,
+      "time_ms": 134.1,
+      "valid": true
+    },
+    {
+      "pairs_verified": 5,
+      "total_gates": 12083,
+      "boundary_gates": 137,
+      "wires": 12537,
+      "time_ms": 148.5,
+      "valid": true
+    },
+    {
+      "pairs_verified": 8,
+      "total_gates": 12230,
+      "boundary_gates": 284,
+      "wires": 12678,
+      "time_ms": 139.4,
+      "valid": true
+    },
+    {
+      "pairs_verified": 10,
+      "total_gates": 12362,
+      "boundary_gates": 416,
+      "wires": 12806,
+      "time_ms": 137.4,
+      "valid": true
+    },
+    {
+      "pairs_verified": 15,
+      "total_gates": 12739,
+      "boundary_gates": 793,
+      "wires": 13171,
+      "time_ms": 148.1,
+      "valid": true
+    },
+    {
+      "pairs_verified": 20,
+      "total_gates": 13232,
+      "boundary_gates": 1286,
+      "wires": 13647,
+      "time_ms": 142.6,
+      "valid": true
+    }
+  ],
+  "discrimination": [
+    {
+      "name": "MLP-A",
+      "params": 250,
+      "fingerprint": "0x265bf47596b30ac1b5f19ebcb6d12278512f771fdd0479887257f7648f30e57f"
+    },
+    {
+      "name": "MLP-B",
+      "params": 250,
+      "fingerprint": "0x1b632fef27278c7e0e61ebb59ea5e8d27835353e8591548772588fadd26e3c08"
+    },
+    {
+      "name": "MLP-C",
+      "params": 250,
+      "fingerprint": "0x28cd3e2fafd292e239f55867b1cbbc9ac083c7db52c1fc8953dacd2d08dde2c4"
+    },
+    {
+      "name": "Deep",
+      "params": 515,
+      "fingerprint": "0x28dd271da160f30222bcd554ae30c4e1fc72b9bc538d8af8ed9cc4ab0b4ca0c8"
+    },
+    {
+      "name": "Wide",
+      "params": 1250,
+      "fingerprint": "0x1d4efbb7c6e4b54ac34162ff132ae8a06b31c4eeac64aa6c909d8e679765d019"
+    }
+  ],
+  "determinism": {
+    "fingerprints": [
+      "0x1e2a19144aeded7b692d6d40141a05ed17b3d4356a76fb56e0bfaa3e80fda18d",
+      "0x1e2a19144aeded7b692d6d40141a05ed17b3d4356a76fb56e0bfaa3e80fda18d",
+      "0x1e2a19144aeded7b692d6d40141a05ed17b3d4356a76fb56e0bfaa3e80fda18d"
+    ],
+    "is_deterministic": true
+  }
+}
