@@ -152,6 +152,67 @@ impl PyFr {
             .map(|inv| inv.into_iter().map(|f| PyFr { inner: f }).collect())
             .ok_or_else(|| PyZeroDivisionError::new_err("Cannot invert zero in batch"))
     }
+
+    // --- API Parity with Python Fr ---
+
+    /// The BN254 scalar field modulus.
+    /// Matches Python Fr.MODULUS class attribute.
+    #[classattr]
+    #[pyo3(name = "MODULUS")]
+    fn modulus(py: Python<'_>) -> PyResult<PyObject> {
+        let builtins = py.import("builtins")?;
+        builtins.call_method1("int", ("21888242871839275222246405745257275088548364400416034343698204186575808495617",))
+            .map(|v| v.into())
+    }
+
+    /// Internal Montgomery representation.
+    /// Used by the PLONK pipeline for direct comparison/storage.
+    /// Returns the Montgomery-encoded integer (matches Python Fr.value).
+    #[getter]
+    fn value(&self, py: Python<'_>) -> PyResult<PyObject> {
+        // Reconstruct the full Montgomery value from 4 limbs
+        let raw = self.inner.to_mont_raw();
+        let builtins = py.import("builtins")?;
+        // Build Python int from 4 limbs: sum(limb[i] * 2^(64*i))
+        let mut result = builtins.call_method1("int", (0_u64,))?;
+        for (i, &limb) in raw.iter().enumerate() {
+            let shift = 64 * i;
+            let limb_py = builtins.call_method1("int", (limb,))?;
+            let shifted = limb_py.call_method1("__lshift__", (shift,))?;
+            result = result.call_method1("__or__", (shifted,))?;
+        }
+        Ok(result.into())
+    }
+
+    /// Check if this is the multiplicative identity.
+    fn is_one(&self) -> bool {
+        self.inner == Fr::ONE
+    }
+
+    /// Division: self / other = self * other.inverse()
+    fn __truediv__(&self, other: &PyFr) -> PyResult<PyFr> {
+        let inv = other.inner.inverse()
+            .ok_or_else(|| PyZeroDivisionError::new_err("Cannot divide by zero"))?;
+        Ok(PyFr { inner: self.inner * inv })
+    }
+
+    /// Reflected addition: int + RustFr
+    fn __radd__(&self, other: &Bound<'_, PyAny>) -> PyResult<PyFr> {
+        let lhs = PyFr::new(other)?;
+        Ok(PyFr { inner: lhs.inner + self.inner })
+    }
+
+    /// Reflected subtraction: int - RustFr
+    fn __rsub__(&self, other: &Bound<'_, PyAny>) -> PyResult<PyFr> {
+        let lhs = PyFr::new(other)?;
+        Ok(PyFr { inner: lhs.inner - self.inner })
+    }
+
+    /// Reflected multiplication: int * RustFr
+    fn __rmul__(&self, other: &Bound<'_, PyAny>) -> PyResult<PyFr> {
+        let lhs = PyFr::new(other)?;
+        Ok(PyFr { inner: lhs.inner * self.inner })
+    }
 }
 
 /// Parse a decimal string into an Fr element.
@@ -225,9 +286,305 @@ fn fr_from_decimal_str(s: &str) -> Result<Fr, String> {
 }
 
 
+// =============================================================================
+// PyPolynomial — Polynomial over Fr
+// =============================================================================
+
+/// Python-visible wrapper for Polynomial operations.
+#[pyclass(name = "RustPolynomial")]
+#[derive(Clone)]
+struct PyPolynomial {
+    inner: polynomial::Polynomial,
+}
+
+#[pymethods]
+impl PyPolynomial {
+    /// Create from a list of Fr coefficient values.
+    #[new]
+    fn new(coeffs: Vec<PyFr>) -> Self {
+        let frs: Vec<Fr> = coeffs.iter().map(|c| c.inner).collect();
+        PyPolynomial { inner: polynomial::Polynomial::from_coeffs(frs) }
+    }
+
+    /// Zero polynomial.
+    #[staticmethod]
+    fn zero() -> Self {
+        PyPolynomial { inner: polynomial::Polynomial::zero() }
+    }
+
+    /// Constant polynomial.
+    #[staticmethod]
+    fn constant(c: &PyFr) -> Self {
+        PyPolynomial { inner: polynomial::Polynomial::constant(c.inner) }
+    }
+
+    /// Degree of the polynomial (None for zero).
+    fn degree(&self) -> Option<usize> {
+        self.inner.degree()
+    }
+
+    /// Evaluate p(x) using Horner's method.
+    fn evaluate(&self, x: &PyFr) -> PyFr {
+        PyFr { inner: self.inner.evaluate(&x.inner) }
+    }
+
+    /// Polynomial addition.
+    fn __add__(&self, other: &PyPolynomial) -> PyPolynomial {
+        PyPolynomial { inner: self.inner.add(&other.inner) }
+    }
+
+    /// Polynomial subtraction.
+    fn __sub__(&self, other: &PyPolynomial) -> PyPolynomial {
+        PyPolynomial { inner: self.inner.sub(&other.inner) }
+    }
+
+    /// Polynomial multiplication (NTT-accelerated).
+    fn __mul__(&self, other: &PyPolynomial) -> PyPolynomial {
+        PyPolynomial { inner: self.inner.mul(&other.inner) }
+    }
+
+    /// Scalar multiplication.
+    fn scale(&self, scalar: &PyFr) -> PyPolynomial {
+        PyPolynomial { inner: self.inner.scale(&scalar.inner) }
+    }
+
+    /// Division with remainder: (quotient, remainder).
+    fn div_rem(&self, divisor: &PyPolynomial) -> (PyPolynomial, PyPolynomial) {
+        let (q, r) = self.inner.div_rem(&divisor.inner);
+        (PyPolynomial { inner: q }, PyPolynomial { inner: r })
+    }
+
+    /// Lagrange interpolation from points (xs, ys).
+    #[staticmethod]
+    fn lagrange_interpolate(xs: Vec<PyFr>, ys: Vec<PyFr>) -> PyPolynomial {
+        let xs_fr: Vec<Fr> = xs.iter().map(|x| x.inner).collect();
+        let ys_fr: Vec<Fr> = ys.iter().map(|y| y.inner).collect();
+        PyPolynomial {
+            inner: polynomial::Polynomial::lagrange_interpolate(&xs_fr, &ys_fr),
+        }
+    }
+
+    /// Evaluate at n-th roots of unity using NTT.
+    fn evaluate_domain(&self, n: usize) -> Vec<PyFr> {
+        self.inner.evaluate_domain(n)
+            .into_iter()
+            .map(|f| PyFr { inner: f })
+            .collect()
+    }
+
+    /// Number of coefficients.
+    fn __len__(&self) -> usize {
+        self.inner.coeffs.len()
+    }
+
+    /// Get coefficient at index.
+    fn coeff(&self, idx: usize) -> PyResult<PyFr> {
+        if idx < self.inner.coeffs.len() {
+            Ok(PyFr { inner: self.inner.coeffs[idx] })
+        } else {
+            Ok(PyFr { inner: Fr::ZERO })
+        }
+    }
+
+    fn __repr__(&self) -> String {
+        format!("RustPolynomial(degree={:?}, {} coeffs)",
+                self.inner.degree(), self.inner.coeffs.len())
+    }
+}
+
+
+// =============================================================================
+// PyG1Point — BN254 G1 Elliptic Curve Point
+// =============================================================================
+
+/// Python-visible wrapper for G1 curve points.
+#[pyclass(name = "RustG1Point")]
+#[derive(Clone)]
+struct PyG1Point {
+    inner: curve::G1Point,
+}
+
+#[pymethods]
+impl PyG1Point {
+    /// The generator point G1 = (1, 2).
+    #[staticmethod]
+    fn generator() -> Self {
+        PyG1Point { inner: curve::G1Point::generator() }
+    }
+
+    /// The identity (point at infinity).
+    #[staticmethod]
+    fn identity() -> Self {
+        PyG1Point { inner: curve::G1Point::IDENTITY }
+    }
+
+    /// Check if this is the identity point.
+    fn is_identity(&self) -> bool {
+        self.inner.is_identity()
+    }
+
+    /// Verify the point lies on BN254 G1.
+    fn is_on_curve(&self) -> bool {
+        self.inner.is_on_curve()
+    }
+
+    /// Scalar multiplication: self * scalar.
+    fn scalar_mul(&self, scalar: &PyFr) -> PyG1Point {
+        PyG1Point { inner: self.inner.scalar_mul(&scalar.inner) }
+    }
+
+    /// Point addition.
+    fn __add__(&self, other: &PyG1Point) -> PyG1Point {
+        PyG1Point { inner: self.inner.add(&other.inner) }
+    }
+
+    /// Point negation.
+    fn __neg__(&self) -> PyG1Point {
+        PyG1Point { inner: self.inner.neg() }
+    }
+
+    /// Point equality (compares affine coordinates).
+    fn __eq__(&self, other: &PyG1Point) -> bool {
+        self.inner == other.inner
+    }
+
+    /// Multi-scalar multiplication (MSM): Σ scalars[i] * points[i].
+    #[staticmethod]
+    fn msm(points: Vec<PyG1Point>, scalars: Vec<PyFr>) -> PyG1Point {
+        let scs: Vec<Fr> = scalars.iter().map(|s| s.inner).collect();
+        let pts: Vec<curve::G1Point> = points.iter().map(|p| p.inner).collect();
+        PyG1Point { inner: curve::msm(&scs, &pts) }
+    }
+
+    fn __repr__(&self) -> String {
+        if self.inner.is_identity() {
+            "RustG1Point(IDENTITY)".to_string()
+        } else {
+            "RustG1Point(...)".to_string()
+        }
+    }
+}
+
+
+// =============================================================================
+// KZG — Polynomial Commitment Scheme
+// =============================================================================
+
+/// Python-visible wrapper for KZG SRS (Structured Reference String).
+#[pyclass(name = "RustSRS")]
+#[derive(Clone)]
+struct PySRS {
+    inner: kzg::SRS,
+}
+
+#[pymethods]
+impl PySRS {
+    /// Generate SRS from a secret tau and max polynomial degree.
+    #[new]
+    fn new(max_degree: usize, tau: &PyFr) -> Self {
+        PySRS { inner: kzg::SRS::generate(max_degree, &tau.inner) }
+    }
+
+    /// Number of SRS points.
+    fn __len__(&self) -> usize {
+        self.inner.g1_powers.len()
+    }
+
+    fn __repr__(&self) -> String {
+        format!("RustSRS(max_degree={})", self.inner.g1_powers.len() - 1)
+    }
+}
+
+/// Python-visible wrapper for a KZG commitment.
+#[pyclass(name = "RustCommitment")]
+#[derive(Clone)]
+struct PyCommitment {
+    inner: kzg::Commitment,
+}
+
+#[pymethods]
+impl PyCommitment {
+    /// Get the underlying G1 point.
+    #[getter]
+    fn point(&self) -> PyG1Point {
+        PyG1Point { inner: self.inner.point }
+    }
+
+    fn __repr__(&self) -> String {
+        "RustCommitment(...)".to_string()
+    }
+}
+
+/// Python-visible wrapper for a KZG opening proof.
+#[pyclass(name = "RustOpeningProof")]
+#[derive(Clone)]
+struct PyOpeningProof {
+    inner: kzg::OpeningProof,
+}
+
+#[pymethods]
+impl PyOpeningProof {
+    /// The evaluation value f(z).
+    #[getter]
+    fn evaluation(&self) -> PyFr {
+        PyFr { inner: self.inner.evaluation }
+    }
+
+    /// The proof G1 point π = commit(quotient).
+    #[getter]
+    fn quotient_commit(&self) -> PyG1Point {
+        PyG1Point { inner: self.inner.quotient_commit }
+    }
+
+    fn __repr__(&self) -> String {
+        "RustOpeningProof(...)".to_string()
+    }
+}
+
+/// KZG operations as module-level functions.
+#[pyfunction]
+fn kzg_commit(srs: &PySRS, poly: &PyPolynomial) -> PyCommitment {
+    PyCommitment { inner: kzg::commit(&srs.inner, &poly.inner) }
+}
+
+#[pyfunction]
+fn kzg_create_proof(srs: &PySRS, poly: &PyPolynomial, z: &PyFr) -> PyOpeningProof {
+    PyOpeningProof { inner: kzg::create_opening_proof(&srs.inner, &poly.inner, &z.inner) }
+}
+
+#[pyfunction]
+fn kzg_verify(srs: &PySRS, commitment: &PyCommitment, proof: &PyOpeningProof,
+              z: &PyFr, tau: &PyFr) -> bool {
+    kzg::verify_opening_proof_with_tau(&srs.inner, &commitment.inner, &proof.inner,
+                                        &z.inner, &tau.inner)
+}
+
+#[pyfunction]
+fn kzg_batch_verify(srs: &PySRS, commitments: Vec<PyCommitment>, proofs: Vec<PyOpeningProof>,
+                    points: Vec<PyFr>, tau: &PyFr, challenge: &PyFr) -> bool {
+    let comms: Vec<kzg::Commitment> = commitments.iter().map(|c| c.inner.clone()).collect();
+    let pfs: Vec<kzg::OpeningProof> = proofs.iter().map(|p| p.inner.clone()).collect();
+    let pts: Vec<Fr> = points.iter().map(|p| p.inner).collect();
+    kzg::batch_verify_with_tau(&srs.inner, &comms, &pfs, &pts, &tau.inner, &challenge.inner)
+}
+
+
 /// The Python module.
 #[pymodule]
 fn zkml_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    // Field
     m.add_class::<PyFr>()?;
+    // Polynomial
+    m.add_class::<PyPolynomial>()?;
+    // Curve
+    m.add_class::<PyG1Point>()?;
+    // KZG
+    m.add_class::<PySRS>()?;
+    m.add_class::<PyCommitment>()?;
+    m.add_class::<PyOpeningProof>()?;
+    m.add_function(wrap_pyfunction!(kzg_commit, m)?)?;
+    m.add_function(wrap_pyfunction!(kzg_create_proof, m)?)?;
+    m.add_function(wrap_pyfunction!(kzg_verify, m)?)?;
+    m.add_function(wrap_pyfunction!(kzg_batch_verify, m)?)?;
     Ok(())
 }
