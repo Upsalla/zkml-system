@@ -56,7 +56,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from crypto.bn254.field import Fr
+from zkml_system.crypto.bn254.fr_adapter import Fr
 from crypto.bn254.curve import G1Point
 from plonk.core import Polynomial, KZGCommitment
 

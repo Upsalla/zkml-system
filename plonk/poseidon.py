@@ -30,7 +30,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from zkml_system.crypto.bn254.field import Fr
+from zkml_system.crypto.bn254.fr_adapter import Fr
 
 # =============================================================================
 # Poseidon Parameters for BN254 Fr, t=3, α=5

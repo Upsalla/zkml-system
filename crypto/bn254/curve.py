@@ -245,7 +245,7 @@ class G1Point:
         Returns:
             self * scalar
         """
-        if isinstance(scalar, Fr):
+        if hasattr(scalar, 'to_int'):
             scalar = scalar.to_int()
 
         if scalar == 0:
@@ -439,7 +439,7 @@ class G2Point:
 
     def __mul__(self, scalar: Union[Fr, int]) -> G2Point:
         """Scalar multiplication using double-and-add."""
-        if isinstance(scalar, Fr):
+        if hasattr(scalar, 'to_int'):
             scalar = scalar.to_int()
 
         if scalar == 0:

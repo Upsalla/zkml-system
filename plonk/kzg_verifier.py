@@ -41,7 +41,8 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from crypto.bn254.field import Fr, Fp
+from zkml_system.crypto.bn254.fr_adapter import Fr
+from crypto.bn254.field import Fp
 from crypto.bn254.curve import G1Point, G2Point
 from crypto.bn254.pairing_pyecc import (
     pairing,

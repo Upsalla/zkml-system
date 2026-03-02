@@ -22,7 +22,7 @@ import pytest
 # Ensure zkml_system is importable
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from zkml_system.crypto.bn254.field import Fr
+from zkml_system.crypto.bn254.fr_adapter import Fr
 from zkml_system.plonk.circuit_compiler import CircuitCompiler, Gate, GateType
 from zkml_system.plonk.tda_gadgets import (
     TDAGadgets, float_to_fr, fr_to_float,
