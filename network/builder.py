@@ -1,9 +1,9 @@
 """
-Neural Network Builder für zkML
+Neural Network Builder for zkML
 ===============================
 
-Ermöglicht das einfache Erstellen von neuronalen Netzen
-mit automatischer Constraint-Berechnung und Optimierung.
+Enables easy construction of neural networks
+with automatic constraint calculation and optimization.
 
 Beispiel:
     network = NetworkBuilder(prime=101)
@@ -32,17 +32,17 @@ from activations.optimized import get_activation
 
 @dataclass
 class NetworkStats:
-    """Statistiken über das Netzwerk."""
+    """Network statistics."""
     num_layers: int
     total_parameters: int
     total_constraints: int
     constraint_breakdown: Dict[str, int]
     
-    # Vergleich mit ReLU
+    # Comparison with ReLU
     relu_constraints: int
     constraint_savings: float
     
-    # Sparsity (nach Forward Pass)
+    # Sparsity (after forward pass)
     avg_sparsity: float = 0.0
     sparse_constraints: int = 0
     
@@ -60,7 +60,7 @@ class NetworkStats:
 
 @dataclass
 class LayerSpec:
-    """Spezifikation für einen Layer (vor dem Build)."""
+    """Specification for a layer (before build)."""
     layer_type: str  # "input", "dense", "output"
     size: int
     activation: str = "none"
@@ -70,9 +70,9 @@ class LayerSpec:
 
 class Network:
     """
-    Ein gebautes neuronales Netz.
+    A built neural network.
     
-    Enthält alle Layer und kann Forward-Passes durchführen.
+    Contains all layers and can perform forward passes.
     """
     
     def __init__(
@@ -90,7 +90,7 @@ class Network:
         self._calculate_stats()
     
     def _calculate_stats(self) -> None:
-        """Berechnet Netzwerk-Statistiken."""
+        """Calculate network statistics."""
         total_constraints = 0
         total_params = 0
         relu_constraints = 0
@@ -103,12 +103,12 @@ class Network:
             breakdown["bias"] += cb["bias"]
             breakdown["activation"] += cb["activation"]
             
-            # Parameter zählen
+            # Count parameters
             total_params += layer.config.input_size * layer.config.output_size
             if layer.config.use_bias:
                 total_params += layer.config.output_size
             
-            # ReLU-Vergleich (258 Constraints pro Aktivierung)
+            # ReLU comparison (258 constraints per activation)
             relu_constraints += cb["matmul"] + cb["bias"] + 258 * layer.config.output_size
         
         savings = 1 - total_constraints / relu_constraints if relu_constraints > 0 else 0
@@ -124,43 +124,43 @@ class Network:
     
     def forward(self, inputs: List[int]) -> Tuple[List[int], Witness, NetworkStats]:
         """
-        Führt einen Forward-Pass durch.
+        Perform a forward pass.
         
         Args:
-            inputs: Die Eingabewerte
+            inputs: The input values
             
         Returns:
-            Tuple von (Ausgabewerte, Witness, aktualisierte Stats)
+            Tuple of (output values, witness, updated stats)
         """
         witness = Witness(self.prime)
         
-        # Eingaben registrieren
+        # Register inputs
         current_indices = self.input_layer.forward(inputs, witness, public=True)
         
-        # Hidden Layers durchlaufen
+        # Process hidden layers
         sparsities = []
         for i, layer in enumerate(self.hidden_layers):
             output = layer.forward(current_indices, witness, layer_id=i+1)
             current_indices = output.output_indices
             sparsities.append(output.sparsity)
         
-        # Ausgaben markieren
+        # Mark outputs
         output_indices = self.output_layer.forward(current_indices, witness)
         
-        # Ausgabewerte extrahieren
+        # Extract output values
         outputs = [witness.get(idx) for idx in output_indices]
         
-        # Stats aktualisieren mit Sparsity
+        # Update stats with sparsity
         avg_sparsity = sum(sparsities) / len(sparsities) if sparsities else 0
         
-        # Sparse Constraints berechnen
+        # Calculate sparse constraints
         sparse_constraints = 0
         for i, layer in enumerate(self.hidden_layers):
             cb = layer.get_constraint_breakdown()
             active_ratio = 1 - sparsities[i]
             
-            # Aktive Neuronen: volle Kosten
-            # Inaktive Neuronen: nur 1 Constraint (Zero-Proof)
+            # Active neurons: full cost
+            # Inactive neurons: only 1 constraint (zero proof)
             active_neurons = int(layer.config.output_size * active_ratio)
             inactive_neurons = layer.config.output_size - active_neurons
             
@@ -189,18 +189,18 @@ class Network:
 
 class NetworkBuilder:
     """
-    Builder für neuronale Netze.
+    Builder for neural networks.
     
-    Ermöglicht das schrittweise Aufbauen eines Netzes
-    mit automatischer Konfiguration.
+    Enables step-by-step construction of a network
+    with automatic configuration.
     """
     
     def __init__(self, prime: int):
         """
-        Initialisiert den Builder.
+        Initialize the builder.
         
         Args:
-            prime: Das Primfeld für alle Berechnungen
+            prime: The prime field for all computations
         """
         self.prime = prime
         self.layer_specs: List[LayerSpec] = []
@@ -210,9 +210,9 @@ class NetworkBuilder:
         self._output_size: Optional[int] = None
     
     def add_input(self, size: int, name: str = "input") -> 'NetworkBuilder':
-        """Fügt den Eingabe-Layer hinzu."""
+        """Add the input layer."""
         if self._input_size is not None:
-            raise ValueError("Input-Layer bereits definiert")
+            raise ValueError("Input layer already defined")
         
         self._input_size = size
         self.layer_specs.append(LayerSpec(
@@ -232,18 +232,18 @@ class NetworkBuilder:
         biases: Optional[List[int]] = None
     ) -> 'NetworkBuilder':
         """
-        Fügt einen Dense-Layer hinzu.
+        Add a dense layer.
         
         Args:
-            size: Anzahl der Neuronen
-            activation: Aktivierungsfunktion ("gelu", "swish", "quadratic", "relu", "none")
-            use_bias: Ob Bias verwendet wird
-            name: Name des Layers
-            weights: Optionale Gewichte (sonst zufällig initialisiert)
-            biases: Optionale Biases (sonst zufällig initialisiert)
+            size: Number of neurons
+            activation: Activation function ("gelu", "swish", "quadratic", "relu", "none")
+            use_bias: Whether to use bias
+            name: Layer name
+            weights: Optional weights (otherwise randomly initialized)
+            biases: Optional biases (otherwise randomly initialized)
         """
         if self._input_size is None:
-            raise ValueError("Input-Layer muss zuerst definiert werden")
+            raise ValueError("Input layer must be defined first")
         
         layer_idx = len([s for s in self.layer_specs if s.layer_type == "dense"])
         
@@ -258,7 +258,7 @@ class NetworkBuilder:
             name=name
         ))
         
-        # Gewichte speichern, wenn angegeben
+        # Store weights if provided
         if weights is not None:
             if biases is None and use_bias:
                 biases = [0] * size
@@ -267,14 +267,14 @@ class NetworkBuilder:
         return self
     
     def add_output(self, name: str = "output") -> 'NetworkBuilder':
-        """Fügt den Ausgabe-Layer hinzu."""
+        """Add the output layer."""
         if self._output_size is not None:
-            raise ValueError("Output-Layer bereits definiert")
+            raise ValueError("Output layer already defined")
         
-        # Output-Größe ist die Größe des letzten Dense-Layers
+        # Output size is the size of the last dense layer
         dense_specs = [s for s in self.layer_specs if s.layer_type == "dense"]
         if not dense_specs:
-            raise ValueError("Mindestens ein Dense-Layer muss vor dem Output definiert werden")
+            raise ValueError("At least one dense layer must be defined before output")
         
         self._output_size = dense_specs[-1].size
         
@@ -287,18 +287,18 @@ class NetworkBuilder:
     
     def build(self, random_seed: Optional[int] = None) -> Network:
         """
-        Baut das Netzwerk.
+        Build the network.
         
         Args:
-            random_seed: Seed für zufällige Gewichtsinitialisierung
+            random_seed: Seed for random weight initialization
             
         Returns:
-            Das fertige Network-Objekt
+            The final Network object
         """
         if self._input_size is None:
-            raise ValueError("Input-Layer nicht definiert")
+            raise ValueError("Input layer not defined")
         if self._output_size is None:
-            raise ValueError("Output-Layer nicht definiert")
+            raise ValueError("Output layer not defined")
         
         import random
         if random_seed is not None:
@@ -325,11 +325,11 @@ class NetworkBuilder:
                 name=spec.name
             )
             
-            # Gewichte holen oder generieren
+            # Get or generate weights
             if dense_idx in self.weights:
                 weights = self.weights[dense_idx]
             else:
-                # Zufällige Initialisierung (kleine Werte)
+                # Random initialization (small values)
                 max_val = min(10, self.prime // 10)
                 w = [[random.randint(-max_val, max_val) % self.prime 
                       for _ in range(current_input_size)] 
@@ -351,7 +351,7 @@ class NetworkBuilder:
         return Network(self.prime, input_layer, hidden_layers, output_layer)
     
     def summary(self) -> str:
-        """Gibt eine Zusammenfassung des Netzwerks zurück."""
+        """Return a summary of the network."""
         lines = ["Network Summary:", "=" * 50]
         
         current_size = self._input_size
@@ -380,7 +380,7 @@ if __name__ == "__main__":
     
     prime = 101
     
-    # Baue ein einfaches Netzwerk
+    # Build a simple network
     builder = NetworkBuilder(prime)
     builder.add_input(4)
     builder.add_dense(8, activation="gelu")
@@ -390,7 +390,7 @@ if __name__ == "__main__":
     
     print(builder.summary())
     
-    # Baue das Netzwerk
+    # Build the network
     network = builder.build(random_seed=42)
     print(f"\n{network}")
     print(f"\nStats: {network.stats}")
@@ -404,15 +404,15 @@ if __name__ == "__main__":
     print(f"Witness size: {witness.size()}")
     print(f"\nUpdated Stats: {updated_stats}")
     
-    # Vergleich: Mit vs. ohne Optimierungen
+    # Comparison: With vs. without optimizations
     print("\n" + "=" * 50)
-    print("VERGLEICH: Optimiert vs. ReLU")
+    print("COMPARISON: Optimized vs. ReLU")
     print("=" * 50)
-    print(f"Mit GELU:     {updated_stats.total_constraints} Constraints")
-    print(f"Mit ReLU:     {updated_stats.relu_constraints} Constraints")
-    print(f"Ersparnis:    {updated_stats.constraint_savings:.1%}")
-    print(f"Mit Sparsity: {updated_stats.sparse_constraints} Constraints")
+    print(f"With GELU:     {updated_stats.total_constraints} constraints")
+    print(f"With ReLU:     {updated_stats.relu_constraints} constraints")
+    print(f"Savings:       {updated_stats.constraint_savings:.1%}")
+    print(f"With Sparsity: {updated_stats.sparse_constraints} constraints")
     
     if updated_stats.sparse_constraints > 0:
         total_savings = 1 - updated_stats.sparse_constraints / updated_stats.relu_constraints
-        print(f"Gesamt-Ersparnis: {total_savings:.1%}")
+        print(f"Total savings: {total_savings:.1%}")

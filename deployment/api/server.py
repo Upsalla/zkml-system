@@ -1,13 +1,13 @@
 """
 zkML REST API Server
 
-FastAPI-basierte REST API für die zkML PLONK Pipeline.
+FastAPI-based REST API for the zkML PLONK pipeline.
 
-Endpunkte:
-- POST /prove: Generiert einen Zero-Knowledge Proof für eine ML-Inferenz
-- POST /verify: Verifiziert einen bestehenden Proof
-- POST /compile: Kompiliert ein Netzwerk ohne Proof-Generierung
-- GET /health: Health-Check
+Endpoints:
+- POST /prove: Generate a zero-knowledge proof for an ML inference
+- POST /verify: Verify an existing proof
+- POST /compile: Compile a network without proof generation
+- GET /health: Health check
 """
 
 from __future__ import annotations
@@ -29,13 +29,13 @@ from deployment.api.models import (
     HealthResponse, LayerConfig
 )
 
-# Lazy imports für Performance
+# Lazy imports for performance
 _pipeline = None
 _compiler = None
 
 
 def get_pipeline():
-    """Lazy-Load der Pipeline für schnelleren Startup."""
+    """Lazy-load pipeline for faster startup."""
     global _pipeline
     if _pipeline is None:
         from zkml_system.plonk.zkml_pipeline import ZkMLPipeline
@@ -44,7 +44,7 @@ def get_pipeline():
 
 
 def get_compiler():
-    """Lazy-Load des Compilers."""
+    """Lazy-load compiler."""
     global _compiler
     if _compiler is None:
         from zkml_system.plonk.circuit_compiler import CircuitCompiler
@@ -54,7 +54,7 @@ def get_compiler():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Lifecycle-Management für die App."""
+    """Lifecycle management for the app."""
     # Startup
     print("zkML API Server starting...")
     yield
@@ -69,7 +69,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS für Web-Clients — konfigurierbar via Umgebungsvariable
+# CORS for web clients — configurable via environment variable
 _cors_origins = os.environ.get("ZKML_CORS_ORIGINS", "http://localhost:3000").split(",")
 app.add_middleware(
     CORSMiddleware,
@@ -81,7 +81,7 @@ app.add_middleware(
 
 
 def convert_layer_config(layer: LayerConfig) -> Dict[str, Any]:
-    """Konvertiert Pydantic-Modell in Dict für die Pipeline."""
+    """Convert Pydantic model to dict for the pipeline."""
     return {
         'type': layer.type,
         'weights': [[int(w) for w in row] for row in layer.weights],
@@ -92,17 +92,17 @@ def convert_layer_config(layer: LayerConfig) -> Dict[str, Any]:
 
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
-    """Health-Check Endpunkt."""
+    """Health check endpoint."""
     return HealthResponse()
 
 
 @app.post("/compile", response_model=CompileResponse)
 async def compile_network(request: CompileRequest):
     """
-    Kompiliert ein Netzwerk in einen PLONK-Circuit.
+    Compile a network into a PLONK circuit.
     
-    Gibt Statistiken über den Circuit zurück, ohne einen Proof zu generieren.
-    Nützlich für Optimierungs-Analysen.
+    Returns circuit statistics without generating a proof.
+    Useful for optimization analysis.
     """
     start_time = time.perf_counter()
     
@@ -133,7 +133,7 @@ async def compile_network(request: CompileRequest):
             add_gates=circuit.add_gates,
             wires=len(circuit.wires),
             sparse_ratio=circuit.sparse_gates / circuit.total_gates if circuit.total_gates > 0 else 0,
-            estimated_proof_size_bytes=circuit.total_gates * 32 + 256,  # Grobe Schätzung
+            estimated_proof_size_bytes=circuit.total_gates * 32 + 256,  # Rough estimate
         )
         
         return CompileResponse(
@@ -153,10 +153,10 @@ async def compile_network(request: CompileRequest):
 @app.post("/prove", response_model=ProveResponse)
 async def generate_proof(request: ProveRequest):
     """
-    Generiert einen Zero-Knowledge Proof für eine ML-Inferenz.
+    Generate a zero-knowledge proof for an ML inference.
     
-    Der Proof beweist, dass die Ausgabe korrekt aus den Eingaben
-    und dem Netzwerk berechnet wurde, ohne die Gewichte offenzulegen.
+    The proof demonstrates that the output was correctly computed from
+    the inputs and network, without revealing the weights.
     """
     start_time = time.perf_counter()
     
@@ -176,13 +176,13 @@ async def generate_proof(request: ProveRequest):
         if request.activation_values:
             activation_values = [[int(v) for v in layer] for layer in request.activation_values]
         
-        # Kompilieren
+        # Compile
         circuit = pipeline.compile_network(layer_configs, inputs, activation_values)
         
-        # Proof generieren
+        # Generate proof
         proof = pipeline.prove(circuit)
         
-        # Proof-Daten serialisieren
+        # Serialize proof data
         proof_data = ProofData(
             circuit_hash=proof.circuit_hash,
             num_gates=proof.num_gates,
@@ -218,10 +218,10 @@ async def generate_proof(request: ProveRequest):
 @app.post("/verify", response_model=VerifyResponse)
 async def verify_proof(request: VerifyRequest):
     """
-    Verifiziert einen bestehenden Zero-Knowledge Proof.
+    Verify an existing zero-knowledge proof.
     
-    Prüft, ob der Proof gültig ist und zu den angegebenen
-    öffentlichen Eingaben passt.
+    Checks whether the proof is valid and matches the
+    given public inputs.
     """
     start_time = time.perf_counter()
     
@@ -229,7 +229,7 @@ async def verify_proof(request: VerifyRequest):
         # Strukturelle Verifikation
         proof = request.proof
         
-        # Prüfe Circuit-Hash-Format
+        # Check circuit hash format
         if len(proof.circuit_hash) != 16:
             return VerifyResponse(
                 valid=False,
@@ -237,7 +237,7 @@ async def verify_proof(request: VerifyRequest):
                 error="Invalid circuit hash format",
             )
         
-        # Prüfe Gate-Konsistenz
+        # Check gate consistency
         if proof.num_gates < proof.num_sparse_gates + proof.num_gelu_gates:
             return VerifyResponse(
                 valid=False,
@@ -245,7 +245,7 @@ async def verify_proof(request: VerifyRequest):
                 error="Gate count inconsistency",
             )
         
-        # Prüfe Wire-Commitments
+        # Check wire commitments
         if len(proof.wire_commitments) != 3:
             return VerifyResponse(
                 valid=False,
@@ -253,7 +253,7 @@ async def verify_proof(request: VerifyRequest):
                 error="Invalid wire commitment count",
             )
         
-        # Prüfe öffentliche Eingaben
+        # Check public inputs
         if len(proof.public_inputs) != len(request.inputs):
             return VerifyResponse(
                 valid=False,

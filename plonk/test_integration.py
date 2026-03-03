@@ -1,10 +1,10 @@
 """
-Vollständiger Integrationstest für die zkML PLONK Pipeline
+Full integration test for the zkML PLONK pipeline
 
-Dieser Test validiert:
-1. Circuit-Compiler mit GELU und Sparse
+This test validates:
+1. Circuit compiler with GELU and Sparse
 2. End-to-End Pipeline: Network → Circuit → Proof → Verify
-3. Benchmark der Optimierungen
+3. Benchmark of optimizations
 """
 
 import sys
@@ -19,7 +19,7 @@ from zkml_system.plonk.zkml_pipeline import ZkMLPipeline, ZkMLProof, Verificatio
 
 
 def create_test_network(input_size: int, hidden_sizes: List[int], output_size: int) -> List[Dict[str, Any]]:
-    """Erstellt eine Test-Netzwerk-Konfiguration."""
+    """Create a test network configuration."""
     layers = []
     prev_size = input_size
     
@@ -45,16 +45,16 @@ def create_test_network(input_size: int, hidden_sizes: List[int], output_size: i
 
 
 def test_circuit_compiler():
-    """Testet den Circuit-Compiler isoliert."""
+    """Test the circuit compiler in isolation."""
     print("\n" + "=" * 80)
     print("TEST 1: CIRCUIT COMPILER")
     print("=" * 80)
     
-    # Kleines Netzwerk
+    # Small network
     layers = create_test_network(4, [3], 2)
     inputs = [10, 20, 30, 40]
     
-    # Test ohne Optimierungen
+    # Test without optimizations
     compiler = CircuitCompiler(use_sparse=False, use_gelu=False)
     circuit_baseline = compiler.compile_network(layers, inputs)
     print(f"\nBaseline (ReLU + Dense):")
@@ -62,31 +62,31 @@ def test_circuit_compiler():
     print(f"  Sparse: {circuit_baseline.sparse_gates}")
     print(f"  GELU: {circuit_baseline.gelu_gates}")
     
-    # Test mit GELU
+    # Test with GELU
     compiler = CircuitCompiler(use_sparse=False, use_gelu=True)
     circuit_gelu = compiler.compile_network(layers, inputs)
     print(f"\nGELU + Dense:")
     print(f"  Gates: {circuit_gelu.total_gates}")
     print(f"  GELU: {circuit_gelu.gelu_gates}")
     
-    # Test mit Sparse
+    # Test with Sparse
     activation_values = [[100, 0, 200]]  # Neuron 1 inaktiv
     compiler = CircuitCompiler(use_sparse=True, use_gelu=True)
     circuit_sparse = compiler.compile_network(layers, inputs, activation_values)
-    print(f"\nGELU + Sparse (33% inaktiv):")
+    print(f"\nGELU + Sparse (33% inactive):")
     print(f"  Gates: {circuit_sparse.total_gates}")
     print(f"  Sparse: {circuit_sparse.sparse_gates}")
     
-    # Validierung
-    assert circuit_sparse.sparse_gates > 0, "Sparse gates sollten > 0 sein"
-    assert circuit_gelu.gelu_gates > 0, "GELU gates sollten > 0 sein"
+    # Validation
+    assert circuit_sparse.sparse_gates > 0, "Sparse gates should be > 0"
+    assert circuit_gelu.gelu_gates > 0, "GELU gates should be > 0"
     
-    print("\n✓ Circuit Compiler Tests bestanden!")
+    print("\n✓ Circuit Compiler Tests passed!")
     return True
 
 
 def test_pipeline_end_to_end():
-    """Testet die vollständige Pipeline."""
+    """Test the full pipeline."""
     print("\n" + "=" * 80)
     print("TEST 2: END-TO-END PIPELINE")
     print("=" * 80)
@@ -96,38 +96,38 @@ def test_pipeline_end_to_end():
     
     pipeline = ZkMLPipeline(use_sparse=True, use_gelu=True, srs_size=64)
     
-    # Kompilieren
-    print("\n1. Kompilieren...")
+    # Compile
+    print("\n1. Compiling...")
     activation_values = [[100, 0, 200]]
     circuit = pipeline.compile_network(layers, inputs, activation_values)
-    print(f"   Circuit erstellt: {circuit.total_gates} Gates")
+    print(f"   Circuit created: {circuit.total_gates} gates")
     
-    # Proof generieren
-    print("\n2. Proof generieren...")
+    # Generate proof
+    print("\n2. Generating proof...")
     proof = pipeline.prove(circuit)
-    print(f"   Proof generiert in {proof.prover_time_ms:.2f} ms")
-    print(f"   Proof-Größe: {proof.size_bytes()} bytes")
+    print(f"   Proof generated in {proof.prover_time_ms:.2f} ms")
+    print(f"   Proof size: {proof.size_bytes()} bytes")
     
-    # Verifizieren
-    print("\n3. Verifizieren...")
+    # Verify
+    print("\n3. Verifying...")
     result = pipeline.verify(proof, circuit)
     print(f"   Verifikation: {'✓ VALID' if result.is_valid else '✗ INVALID'}")
     print(f"   Zeit: {result.verification_time_ms:.2f} ms")
     
-    # Validierung
-    assert result.is_valid, "Proof sollte gültig sein"
+    # Validation
+    assert result.is_valid, "Proof should be valid"
     
-    print("\n✓ End-to-End Pipeline Tests bestanden!")
+    print("\n✓ End-to-End Pipeline Tests passed!")
     return True
 
 
 def test_optimization_effectiveness():
-    """Testet die Effektivität der Optimierungen."""
+    """Test the effectiveness of optimizations."""
     print("\n" + "=" * 80)
-    print("TEST 3: OPTIMIERUNGS-EFFEKTIVITÄT")
+    print("TEST 3: OPTIMIZATION EFFECTIVENESS")
     print("=" * 80)
     
-    # Größeres Netzwerk für aussagekräftigere Ergebnisse
+    # Larger network for more meaningful results
     layers = create_test_network(8, [6, 4], 2)
     inputs = [i * 10 for i in range(8)]
     
