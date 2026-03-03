@@ -9,7 +9,7 @@ name = "zkml_rust"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.23", features = ["extension-module"] }
+pyo3 = { version = "0.24", features = ["extension-module"] }
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
