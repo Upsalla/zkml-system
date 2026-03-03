@@ -12,8 +12,11 @@ import unittest
 import sys
 import os
 import time
+import importlib
 
 import numpy as np
+
+_HAS_TDA = importlib.util.find_spec("tda_fingerprint") is not None
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(
@@ -187,6 +190,7 @@ class TestWitnessGeneration(unittest.TestCase):
 
 # ─── E2E Prove + Verify Tests ───────────────────────────────────────────────
 
+@unittest.skipUnless(_HAS_TDA, "tda_fingerprint not installed")
 class TestHybridE2E(unittest.TestCase):
     """End-to-end prove and verify tests."""
 
