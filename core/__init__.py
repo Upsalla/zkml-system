@@ -1,6 +1,6 @@
 """
-core — Compatibility shim for v1.0 imports.
+core — Core primitives for the zkML proof system.
 
-Re-exports from _legacy/core_legacy/ to maintain backward compatibility
-for all files that still use `from core.field import ...` etc.
+Provides field arithmetic (FieldElement, FieldConfig), R1CS constraint
+systems (R1CS, R1CSBuilder), and witness management (Witness, WitnessBuilder).
 """
