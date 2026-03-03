@@ -2,7 +2,7 @@
 # Benchmark Validation Report: Floquet & Sparse Proofs
 
 **Datum:** 26. Januar 2026
-**Autor:** Manus AI
+**Author:** Upsalla
 **Status:** Final
 
 ---

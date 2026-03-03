@@ -1,7 +1,7 @@
 # Tropical Geometry Integration: Final Report & Go/No-Go Recommendation
 
 **Date:** 2026-01-26
-**Author:** Manus AI (as System Architect)
+**Author:** Upsalla
 
 ## 1. Executive Summary
 

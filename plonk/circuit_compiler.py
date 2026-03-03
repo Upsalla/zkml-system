@@ -665,7 +665,7 @@ def compile_from_network(
         # Extract activation values from witness (simplified)
         # In a complete implementation, we would read the exact values from the witness
         layer_size = layer.config.output_size
-        # TODO(dweyh): extract actual activation values from forward-pass witness.
+        # TODO: extract actual activation values from forward-pass witness.
         # Zero-fill is correct for fully-sparse layers but masks non-zero activations.
         activation_values = [0] * layer_size
         activation_values_per_layer.append(activation_values)

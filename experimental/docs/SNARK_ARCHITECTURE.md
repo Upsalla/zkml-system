@@ -1,6 +1,6 @@
 # SNARK Architecture Plan: PLONK Integration
 
-**Author**: Manus AI
+**Author**: Upsalla
 **Date**: January 26, 2026
 **Status**: **PARTIALLY IMPLEMENTED** — Prover (`plonk/plonk_prover.py`), Verifier, KZG, Polynomial ops, and SRS all exist. R1CS-to-PLONK compiler exists as `plonk/circuit_compiler.py`. Proposed module structure differs from actual implementation (flat `plonk/` instead of `snark/` + `compiler/`).
 

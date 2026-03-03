@@ -24,7 +24,7 @@ RUN pip install --no-cache-dir --user -r requirements.txt
 FROM python:3.11-slim as production
 
 # Metadata
-LABEL maintainer="Manus AI <contact@manus.ai>"
+LABEL maintainer="Upsalla"
 LABEL version="0.1.0"
 LABEL description="Zero-Knowledge Machine Learning Proof System"
 

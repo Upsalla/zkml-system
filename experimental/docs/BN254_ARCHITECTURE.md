@@ -1,6 +1,6 @@
 # BN254 Integration Architecture
 
-**Author**: Manus AI
+**Author**: Upsalla
 **Date**: January 26, 2026
 **Status**: **IMPLEMENTED** — `crypto/bn254/` contains field arithmetic (`Fr`, `Fp`, `Fp2`, `Fp6`, `Fp12`), curve operations (`G1Point`, `G2Point`), and Optimal Ate Pairing. Rust backend (`zkml_rs`) provides optimized `Fr` operations via PyO3.
 

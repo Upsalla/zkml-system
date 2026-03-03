@@ -1,6 +1,6 @@
 # TDA-Fingerprinting: Umfassender Produktplan
 
-**Autor:** Manus AI (Systemarchitekt)  
+**Author:** Upsalla
 **Datum:** 26. Januar 2026  
 **Version:** 1.0
 

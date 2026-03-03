@@ -3,6 +3,11 @@ name: CI
 on:
   push:
     branches: [master]
+    paths-ignore:
+      - '**.md'
+      - 'experimental/docs/**'
+      - 'LICENSE'
+      - '.gitignore'
   pull_request:
     branches: [master]
 
@@ -31,7 +36,8 @@ jobs:
       - name: Install zkml-system
         run: pip install -e ".[dev]"
 
-      - name: Install tda_fingerprint (sibling dependency)
+      - name: Install tda_fingerprint (optional sibling dependency)
+        continue-on-error: true
         run: |
           pip install git+https://github.com/dweyhe/tda_fingerprint.git
 

@@ -1,7 +1,7 @@
 # zkML System: Performance & Security Audit Report
 
 **Datum:** 26. Januar 2026
-**Autor:** Manus AI
+**Author:** Upsalla
 **Status:** Final
 
 ---

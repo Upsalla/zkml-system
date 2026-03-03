@@ -1,7 +1,7 @@
 # Integrationsbericht: zkML-Optimierungen in PLONK
 
 **Datum:** 26. Januar 2026
-**Autor:** Manus AI
+**Author:** Upsalla
 
 ## 1. Zielsetzung
 

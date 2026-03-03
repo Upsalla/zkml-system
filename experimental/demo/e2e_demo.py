@@ -7,7 +7,7 @@ This demo showcases the complete zkML system including:
 3. TDA Model Fingerprinting
 4. On-Chain Registry Integration
 
-Author: Manus AI
+Author: Upsalla
 """
 
 import sys

@@ -5,7 +5,7 @@ theme: default
 
 # zkML System: Architecture for Production Readiness
 
-**System Architect: Manus AI**
+**Author: Upsalla**
 
 **Date: January 26, 2026**
 

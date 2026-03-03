@@ -3,9 +3,9 @@
 # zkML System Deployment Script
 #
 # Usage:
-#   ./deploy.sh local    # Lokale Installation
-#   ./deploy.sh docker   # Docker-Deployment
-#   ./deploy.sh test     # Tests ausführen
+#   ./deploy.sh local    # Local installation
+#   ./deploy.sh docker   # Docker deployment
+#   ./deploy.sh test     # Run tests
 #
 
 set -e
@@ -13,7 +13,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
-# Farben für Output
+# Output colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -31,72 +31,72 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Lokale Installation
+# Local installation
 deploy_local() {
-    log_info "Starte lokale Installation..."
+    log_info "Starting local installation..."
     
     cd "$PROJECT_DIR"
     
-    # Virtuelle Umgebung erstellen (optional)
+    # Create virtual environment (optional)
     if [ ! -d "venv" ]; then
-        log_info "Erstelle virtuelle Umgebung..."
+        log_info "Creating virtual environment..."
         python3 -m venv venv
     fi
     
-    # Dependencies installieren
-    log_info "Installiere Dependencies..."
+    # Install dependencies
+    log_info "Installing dependencies..."
     pip3 install -r requirements.txt
     
-    # Package installieren
-    log_info "Installiere zkml-system..."
+    # Install package
+    log_info "Installing zkml-system..."
     pip3 install -e .
     
-    log_info "Installation abgeschlossen!"
-    log_info "Verfügbare Befehle:"
+    log_info "Installation complete!"
+    log_info "Available commands:"
     echo "  zkml --help           # CLI-Hilfe"
     echo "  zkml serve            # API-Server starten"
     echo "  zkml init             # Beispiel-Netzwerk erstellen"
     echo "  zkml prove -n ... -i ...  # Proof generieren"
 }
 
-# Docker-Deployment
+# Docker deployment
 deploy_docker() {
-    log_info "Starte Docker-Deployment..."
+    log_info "Starting Docker deployment..."
     
     cd "$PROJECT_DIR"
     
-    # Docker-Image bauen
-    log_info "Baue Docker-Image..."
+    # Build Docker image
+    log_info "Building Docker image..."
     docker build -t zkml-system:latest -f deployment/docker/Dockerfile .
     
-    # Container starten
-    log_info "Starte Container..."
+    # Start container
+    log_info "Starting container..."
     docker-compose -f deployment/docker/docker-compose.yml up -d
     
-    # Warte auf Health-Check
-    log_info "Warte auf Server..."
+    # Wait for health check
+    log_info "Waiting for server..."
     sleep 5
     
     # Health-Check
     if curl -s http://localhost:8000/health | grep -q "healthy"; then
-        log_info "Server läuft!"
-        log_info "API verfügbar unter: http://localhost:8000"
-        log_info "Dokumentation: http://localhost:8000/docs"
+        log_info "Server is running!"
+        log_info "API available at: http://localhost:8000"
+        log_info "Documentation: http://localhost:8000/docs"
     else
-        log_error "Server nicht erreichbar!"
+        log_error "Server unreachable!"
         docker-compose -f deployment/docker/docker-compose.yml logs
         exit 1
     fi
 }
 
-# Tests ausführen
+# Run tests
 run_tests() {
-    log_info "Führe Tests aus..."
+    log_info "Running tests..."
     
     cd "$PROJECT_DIR"
     
-    # Integrationstests
-    log_info "Integrationstests..."
+    # Integration tests
+    log_info "Integration tests..."
     python3 -u plonk/test_integration.py
     
     # CLI-Test
@@ -104,18 +104,18 @@ run_tests() {
     python3 -m deployment.cli.main init --output /tmp/test_network.json
     python3 -m deployment.cli.main compile -n /tmp/test_network.json -i /tmp/test_network_input.json
     
-    log_info "Alle Tests bestanden!"
+    log_info "All tests passed!"
 }
 
-# API-Test
+# API test
 test_api() {
-    log_info "Teste API..."
+    log_info "Testing API..."
     
     # Health-Check
     curl -s http://localhost:8000/health | python3 -m json.tool
     
-    # Compile-Test
-    log_info "Compile-Endpunkt..."
+    # Compile test
+    log_info "Compile endpoint..."
     curl -s -X POST http://localhost:8000/compile \
         -H "Content-Type: application/json" \
         -d '{
@@ -134,21 +134,21 @@ test_api() {
             "inputs": [10, 20, 30, 40]
         }' | python3 -m json.tool
     
-    log_info "API-Tests abgeschlossen!"
+    log_info "API tests complete!"
 }
 
-# Hilfe
+# Help
 show_help() {
     echo "zkML System Deployment Script"
     echo ""
     echo "Usage: $0 <command>"
     echo ""
     echo "Commands:"
-    echo "  local     Lokale Installation (pip install)"
-    echo "  docker    Docker-Deployment (docker-compose)"
-    echo "  test      Tests ausführen"
-    echo "  api-test  API-Endpunkte testen"
-    echo "  help      Diese Hilfe anzeigen"
+    echo "  local     Local installation (pip install)"
+    echo "  docker    Docker deployment (docker-compose)"
+    echo "  test      Run tests"
+    echo "  api-test  Test API endpoints"
+    echo "  help      Show this help"
 }
 
 # Main
@@ -169,7 +169,7 @@ case "${1:-help}" in
         show_help
         ;;
     *)
-        log_error "Unbekannter Befehl: $1"
+        log_error "Unknown command: $1"
         show_help
         exit 1
         ;;

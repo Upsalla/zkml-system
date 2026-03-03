@@ -1,6 +1,6 @@
 # Finaler Produktbericht: zkML-System & TDA-Fingerprinting
 
-**Autor:** Manus AI (Systemarchitekt)
+**Author:** Upsalla
 **Datum:** 26. Januar 2026
 
 ## 1. Zusammenfassung

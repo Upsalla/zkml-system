@@ -1,6 +1,6 @@
 # zkML System: Architecture Plan for Production Readiness
 
-**Author**: Manus AI
+**Author**: Upsalla
 **Date**: January 26, 2026
 **Version**: 1.0
 **Status**: **PARTIALLY DELIVERED** — see milestone status below.

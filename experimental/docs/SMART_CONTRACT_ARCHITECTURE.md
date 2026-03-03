@@ -1,6 +1,6 @@
 # Smart Contract Architecture for On-Chain zkML Verification
 
-**Author**: Manus AI
+**Author**: Upsalla
 **Date**: January 26, 2026
 **Status**: **PARTIALLY IMPLEMENTED** — Contracts exist in `contracts/` (`PlonkVerifier.sol`, `PlonkVerifierOptimized.sol`, `ZkMLVerifier.sol`, `ModelRegistry.sol`, `IZkMLVerifier.sol`). Not deployed or end-to-end tested.
 

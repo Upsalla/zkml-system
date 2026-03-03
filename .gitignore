@@ -12,3 +12,5 @@ rust_backend/target/
 .venv/
 .idea/
 .vscode/
+.agent/
+*.pdf

@@ -3,7 +3,7 @@
 
 **Project:** Prüfung, Planung und Implementierung von Compressed Sensing für Witness-Kompression im zkML-System
 
-**Author:** Manus AI
+**Author:** Upsalla
 
 **Date:** 26. Januar 2026
 

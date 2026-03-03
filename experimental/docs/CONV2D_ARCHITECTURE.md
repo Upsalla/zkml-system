@@ -1,6 +1,6 @@
 # Conv2D Layer Architecture for zkML
 
-**Author**: Manus AI
+**Author**: Upsalla
 **Date**: January 26, 2026
 **Status**: **PARTIALLY IMPLEMENTED** — `network/cnn/conv2d.py` and `network/cnn/pooling.py` exist. Fused BatchNorm and LeNet-5 model not yet implemented.
 
