@@ -66,7 +66,7 @@ class Fp:
         if isinstance(value, Fp):
             self.value = value.value
         elif _is_montgomery:
-            self.value = value
+            self.value = value % self.MODULUS
         else:
             # Ensure value is in range [0, p)
             value = value % self.MODULUS
@@ -266,7 +266,7 @@ class Fr:
         if isinstance(value, Fr):
             self.value = value.value
         elif _is_montgomery:
-            self.value = value
+            self.value = value % self.MODULUS
         else:
             value = value % self.MODULUS
             self.value = to_montgomery(value, self.R_SQUARED, self.MODULUS, self.N_PRIME)

@@ -169,9 +169,12 @@ def verify_kzg_opening(
     g1 = G1Point.generator()
     g2 = G2Point.generator()
     
-    # Handle edge cases
+    # Handle zero polynomial edge case
+    # Require all three conditions: commitment is identity, value is zero,
+    # AND proof is identity. Without checking proof, a malicious prover
+    # could forge by setting commitment=identity and value=0 with any proof.
     if commitment.is_identity() and value == Fr.zero():
-        return True  # Zero polynomial
+        return proof.is_identity()
     
     # Compute LHS: e(π, [τ]₂)
     lhs = pairing(proof, tau_g2)
@@ -214,11 +217,18 @@ def verify_kzg_batch(
     if random_challenge is None:
         import hashlib
         hasher = hashlib.sha256()
+        # Include ALL elements in Fiat-Shamir hash to prevent
+        # rogue-proof cancellation attacks
         for c, z, v, pi in openings:
+            hasher.update(str(c).encode())
+            hasher.update(str(pi).encode())
             hasher.update(z.to_int().to_bytes(32, 'big'))
             hasher.update(v.to_int().to_bytes(32, 'big'))
         r_bytes = hasher.digest()
         random_challenge = Fr(int.from_bytes(r_bytes, 'big') % Fr.MODULUS)
+        # Guard against degenerate zero challenge
+        if random_challenge == Fr.zero():
+            random_challenge = Fr.one()
     
     g1 = G1Point.generator()
     g2 = G2Point.generator()

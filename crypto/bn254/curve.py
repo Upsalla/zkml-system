@@ -248,10 +248,12 @@ class G1Point:
         if hasattr(scalar, 'to_int'):
             scalar = scalar.to_int()
 
+        # Reduce modulo curve order to prevent unbounded iterations
+        from .constants import CURVE_ORDER
+        scalar = scalar % CURVE_ORDER
+
         if scalar == 0:
             return G1Point.identity()
-        if scalar < 0:
-            return (-self) * (-scalar)
 
         result = G1Point.identity()
         base = G1Point(self.x, self.y, self.z)

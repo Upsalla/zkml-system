@@ -14,7 +14,6 @@ Date: 2026-03-01
 
 from __future__ import annotations
 import hashlib
-import struct
 
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
