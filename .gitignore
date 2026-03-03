@@ -8,3 +8,7 @@ build/
 rust_backend/target/
 *.whl
 *.so
+.env
+.venv/
+.idea/
+.vscode/

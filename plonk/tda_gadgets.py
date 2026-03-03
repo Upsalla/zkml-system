@@ -7,7 +7,7 @@ encoding Persistent Homology verification into PLONK constraints.
 Gadgets:
     - squared_distance:  d²(p, q) = Σ(pᵢ - qᵢ)²
     - comparison:        a ≤ b  (via difference + range check)
-    - poseidon_hash:     ZK-friendly hash (placeholder → algebraic hash)
+    - poseidon_hash:     ZK-friendly hash (Poseidon, t=3, α=5, BN254 Fr)
     - assert_equal:      a == b  (constrained equality)
     - assert_boolean:    b ∈ {0, 1}
     - conditional_select: if b then x else y
@@ -333,7 +333,7 @@ class TDAGadgets:
         return result
 
     # -----------------------------------------------------------------
-    # Algebraic Hash (Poseidon-like placeholder)
+    # Algebraic Hash (Poseidon)
     # -----------------------------------------------------------------
 
     def algebraic_hash(self, inputs: List[int]) -> int:

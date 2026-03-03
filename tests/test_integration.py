@@ -65,7 +65,7 @@ def test_cnn_layers():
 def test_polynomial():
     """Test polynomial arithmetic."""
     print("Testing polynomial arithmetic...")
-    from zkml_system.crypto.bn254.field import Fr
+    from zkml_system.crypto.bn254.fr_adapter import Fr
     from zkml_system.plonk.polynomial import Polynomial, FFT
 
     p = Polynomial.from_ints([1, 2, 3])
@@ -85,7 +85,7 @@ def test_polynomial():
 def test_kzg():
     """Test KZG commitments."""
     print("Testing KZG commitments...")
-    from zkml_system.crypto.bn254.field import Fr
+    from zkml_system.crypto.bn254.fr_adapter import Fr
     from zkml_system.plonk.polynomial import Polynomial
     from zkml_system.plonk.kzg import SRS, KZG
 

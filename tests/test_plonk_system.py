@@ -320,7 +320,8 @@ class TestZkMLPipeline(unittest.TestCase):
         self.assertGreater(stats['num_wires'], 0)
         self.assertGreater(stats['num_gates'], 0)
     
-    def test_proof_generation_and_verification(self):
+    def test_proof_generation_raises_not_implemented(self):
+        """ZkMLProver.prove() must raise NotImplementedError (quarantined hollow shell)."""
         from plonk.zkml import ZkML, NetworkConfig
         
         config = NetworkConfig(
@@ -334,15 +335,9 @@ class TestZkMLPipeline(unittest.TestCase):
         
         zkml = ZkML(config, srs_max_degree=512)
         
-        # Generate proof
         input_data = [i + 1 for i in range(8)]
-        proof = zkml.prove(input_data)
-        
-        # Verify proof
-        is_valid, reason = zkml.verify(proof)
-        
-        self.assertTrue(is_valid)
-        self.assertEqual(reason, "Proof valid")
+        with self.assertRaises(NotImplementedError):
+            zkml.prove(input_data)
     
     def test_optimization_estimates(self):
         from plonk.zkml import ZkML, NetworkConfig
@@ -366,7 +361,8 @@ class TestZkMLPipeline(unittest.TestCase):
 class TestIntegration(unittest.TestCase):
     """Integration tests for the complete system."""
     
-    def test_end_to_end_small_network(self):
+    def test_end_to_end_raises_not_implemented(self):
+        """E2E proof must raise NotImplementedError (quarantined hollow shell)."""
         from plonk.zkml import ZkML, NetworkConfig
         
         config = NetworkConfig(
@@ -381,14 +377,12 @@ class TestIntegration(unittest.TestCase):
         
         zkml = ZkML(config, srs_max_degree=1024)
         
-        # Multiple proof generations
-        for i in range(3):
-            input_data = [(i + j) % 256 for j in range(16)]
-            proof = zkml.prove(input_data)
-            is_valid, _ = zkml.verify(proof)
-            self.assertTrue(is_valid)
+        input_data = [j % 256 for j in range(16)]
+        with self.assertRaises(NotImplementedError):
+            zkml.prove(input_data)
     
-    def test_proof_size(self):
+    def test_proof_size_raises_not_implemented(self):
+        """Proof size test must raise NotImplementedError (quarantined)."""
         from plonk.zkml import ZkML, NetworkConfig
         
         config = NetworkConfig(
@@ -402,10 +396,8 @@ class TestIntegration(unittest.TestCase):
         zkml = ZkML(config, srs_max_degree=256)
         
         input_data = [i for i in range(8)]
-        proof = zkml.prove(input_data)
-        
-        # Proof should be reasonably sized
-        self.assertLess(proof.size_bytes, 10000)  # Less than 10KB
+        with self.assertRaises(NotImplementedError):
+            zkml.prove(input_data)
 
 
 def run_tests():

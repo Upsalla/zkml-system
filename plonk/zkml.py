@@ -35,10 +35,18 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional, Tuple, Union
 from enum import Enum
 import time
+import warnings
 import sys
 import os
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+warnings.warn(
+    "plonk.zkml provides a simplified demo API. For production-grade PLONK "
+    "proofs use PLONKProver/PLONKVerifier from plonk.plonk_prover.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 from plonk.core import (
     Field, Polynomial, FFT, SRS, KZG, KZGCommitment, KZGProof,
@@ -299,8 +307,10 @@ class CircuitCompiler:
                 pass
             
             else:
-                # Placeholder for other layers
-                pass
+                raise NotImplementedError(
+                    f"Layer type {lt.value!r} not yet supported in circuit compiler. "
+                    f"Supported: DENSE, RELU, MAX_POOL, ARGMAX, FLATTEN."
+                )
         
         return circuit
 
@@ -367,56 +377,19 @@ class ZkMLProver:
         """
         Generate a zkML proof.
         
-        Args:
-            circuit: Compiled circuit
-            witness: Witness assignment
-            public_input: Public input values
-            network_hash: Hash of network configuration
-        
-        Returns:
-            ZkMLProof
+        Raises:
+            NotImplementedError: Always. This simplified API does not implement
+                the PLONK quotient polynomial. Use PLONKProver from
+                plonk_prover.py for production-grade proofs.
         """
-        start_time = time.time()
-        
-        # Optimize witness if sparse
-        opt_stats = None
-        if self.optimizer.config.enable_cswc or self.optimizer.config.enable_hwwb:
-            _, opt_stats = self.optimizer.optimize_witness(
-                witness, circuit.num_wires()
-            )
-        
-        # Create input polynomial and commit
-        input_poly = Polynomial([Fr(v) for v in public_input])
-        input_commitment = self.kzg.commit(input_poly)
-        
-        # Create wire polynomials
-        wire_values = witness.to_list(circuit.num_wires())
-        wire_poly = Polynomial(wire_values)
-        wire_commitment = self.kzg.commit(wire_poly)
-        
-        # Compute quotient (simplified)
-        quotient_poly = Polynomial.one()  # Placeholder
-        quotient_commitment = self.kzg.commit(quotient_poly)
-        
-        # Create opening proof
-        challenge = Field.from_bytes(
-            input_commitment.to_bytes() + wire_commitment.to_bytes()
-        )
-        opening_proof = self.kzg.create_proof(wire_poly, challenge)
-        
-        # Get output value
-        output_value = wire_values[-1] if wire_values else Fr.zero()
-        
-        return ZkMLProof(
-            input_commitment=input_commitment,
-            output_value=output_value,
-            wire_commitments=[wire_commitment],
-            quotient_commitment=quotient_commitment,
-            opening_proof=opening_proof.proof,
-            evaluations={'wire': wire_poly.evaluate(challenge)},
-            network_hash=network_hash,
-            timestamp=time.time(),
-            optimization_stats=opt_stats
+        # HONEST BOUNDARY: Quotient polynomial requires the full PLONK
+        # protocol (5-round Fiat-Shamir). This simplified API does not
+        # implement it. Use PLONKProver from plonk_prover.py for real proofs.
+        raise NotImplementedError(
+            "ZkMLProver.prove() does not implement the PLONK quotient polynomial. "
+            "The full 5-round Fiat-Shamir protocol is available via "
+            "plonk.plonk_prover.PLONKProver.prove(). This API cannot generate "
+            "cryptographically sound proofs."
         )
 
 
@@ -451,8 +424,17 @@ class ZkMLVerifier:
         if proof.network_hash != expected_network_hash:
             return False, "Network hash mismatch"
         
-        # Verify KZG opening (simplified)
-        # In production, this would use pairing checks
+        # STRUCTURAL CHECKS ONLY — no pairing verification.
+        # This verifier does NOT check constraint satisfaction or
+        # KZG opening proofs. For cryptographic verification, use
+        # PLONKVerifier from plonk_prover.py.
+        warnings.warn(
+            "ZkMLVerifier.verify() performs structural checks only "
+            "(curve point validity). It does NOT verify constraint "
+            "satisfaction or KZG openings. Use PLONKVerifier for soundness.",
+            UserWarning,
+            stacklevel=2,
+        )
         
         # Check commitments are valid curve points
         for wc in proof.wire_commitments:
@@ -462,7 +444,7 @@ class ZkMLVerifier:
         if not proof.quotient_commitment.point.is_on_curve():
             return False, "Invalid quotient commitment"
         
-        return True, "Proof valid"
+        return True, "Proof structurally valid (NOT cryptographically verified)"
 
 
 # =============================================================================

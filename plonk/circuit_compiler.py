@@ -121,7 +121,7 @@ class CompiledCircuit:
         return a_wires, b_wires, c_wires
     
     def stats_summary(self) -> str:
-        """Gibt eine Zusammenfassung der Circuit-Statistiken zurück."""
+        """Return a summary of circuit statistics."""
         sparse_pct = (self.sparse_gates / self.total_gates * 100) if self.total_gates > 0 else 0
         return (
             f"CompiledCircuit(\n"
@@ -665,7 +665,9 @@ def compile_from_network(
         # Extract activation values from witness (simplified)
         # In a complete implementation, we would read the exact values from the witness
         layer_size = layer.config.output_size
-        activation_values = [0] * layer_size  # Placeholder
+        # TODO(dweyh): extract actual activation values from forward-pass witness.
+        # Zero-fill is correct for fully-sparse layers but masks non-zero activations.
+        activation_values = [0] * layer_size
         activation_values_per_layer.append(activation_values)
     
     return compiler.compile_network(
