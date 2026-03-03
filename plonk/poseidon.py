@@ -196,7 +196,8 @@ class PoseidonHash:
           2. Apply S-box (x^5) to all/first element
           3. Multiply by MDS matrix
         """
-        assert len(state) == T, f"State must have {T} elements, got {len(state)}"
+        if len(state) != T:
+            raise ValueError(f"State must have {T} elements, got {len(state)}")
         
         state = list(state)  # Copy
         rc_offset = 0
@@ -334,7 +335,8 @@ class PoseidonGadget:
           
           Total: 4 × 30 + 57 × 26 + 4 × 30 = 120 + 1482 + 120 = 1722 gates
         """
-        assert len(state_wires) == T
+        if len(state_wires) != T:
+            raise ValueError(f"State wires must have {T} elements, got {len(state_wires)}")
         
         state = list(state_wires)
         rc_offset = 0

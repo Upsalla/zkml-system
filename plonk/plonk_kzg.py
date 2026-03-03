@@ -39,7 +39,7 @@ class TrustedSetup:
 
     Generated via a trusted setup ceremony with toxic waste τ.
     In production, this would use a multi-party computation (MPC).
-    Here we generate it directly for testing.
+    Currently uses cryptographically random τ (secure for single-party).
 
     Contents:
         g1_powers: [G₁, τ·G₁, τ²·G₁, ..., τⁿ·G₁]
@@ -119,7 +119,7 @@ def commit(poly: Polynomial, srs: TrustedSetup) -> G1Point:
     # Try Rust MSM path
     try:
         return _commit_rust_msm(poly, srs)
-    except Exception:
+    except (ImportError, RuntimeError):
         pass
 
     # Python fallback: MSM via loop

@@ -105,15 +105,18 @@ class CompiledCircuit:
         }
     
     def get_wire_assignments(self) -> Tuple[List[Fr], List[Fr], List[Fr]]:
-        """Extrahiert die Wire-Zuweisungen (a, b, c) für jeden Gate."""
+        """Extract wire assignments (a, b, c) for each gate."""
         a_wires = []
         b_wires = []
         c_wires = []
         
         for gate in self.gates:
-            a_wires.append(self.wires[gate.left].value or Fr.zero())
-            b_wires.append(self.wires[gate.right].value or Fr.zero())
-            c_wires.append(self.wires[gate.output].value or Fr.zero())
+            a_val = self.wires[gate.left].value
+            b_val = self.wires[gate.right].value
+            c_val = self.wires[gate.output].value
+            a_wires.append(a_val if a_val is not None else Fr.zero())
+            b_wires.append(b_val if b_val is not None else Fr.zero())
+            c_wires.append(c_val if c_val is not None else Fr.zero())
         
         return a_wires, b_wires, c_wires
     
@@ -329,7 +332,7 @@ class CircuitCompiler:
         NEG_ONE = Fr(Fr.MODULUS - 1)
 
         gates = []
-        x_val = self.wires[input_wire].value or Fr.zero()
+        x_val = self.wires[input_wire].value if self.wires[input_wire].value is not None else Fr.zero()
 
         # Gate 1: sq = x * x
         sq_wire = self._new_wire(f"gelu_sq_L{layer_idx}_N{neuron_idx}")
@@ -442,7 +445,7 @@ class CircuitCompiler:
         NEG_ONE = Fr(Fr.MODULUS - 1)
 
         gates = []
-        x_val = self.wires[input_wire].value or Fr.zero()
+        x_val = self.wires[input_wire].value if self.wires[input_wire].value is not None else Fr.zero()
 
         # Determine sign: positive if in lower half of field
         x_int = x_val.to_int()

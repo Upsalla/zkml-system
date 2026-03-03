@@ -62,6 +62,10 @@ class SRS:
             import os
             tau = Fr(int.from_bytes(os.urandom(32), 'big'))
 
+        # Guard against degenerate tau=0 (all powers would be zero)
+        if tau == Fr.zero():
+            raise ValueError("tau must not be zero — SRS would be degenerate")
+
         g1 = G1Point.generator()
         g2 = G2Point.generator()
 

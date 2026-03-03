@@ -18,6 +18,8 @@ class Polynomial:
     """A polynomial over the scalar field Fr."""
 
     def __init__(self, coeffs: List[Fr]):
+        # Copy to avoid mutating caller's list
+        coeffs = list(coeffs)
         while len(coeffs) > 1 and coeffs[-1].is_zero():
             coeffs.pop()
         self.coeffs = coeffs if coeffs else [Fr.zero()]
@@ -106,17 +108,31 @@ class FFT:
         self.omega_inv = self.omega.inverse()
 
     def _find_root_of_unity(self, n: int) -> Fr:
+        # Use g=5 as candidate generator for BN254 scalar field
         g = Fr(5)
         r_minus_1 = Fr.MODULUS - 1
         exp = r_minus_1 // n
         omega = g ** exp
+        # Validate: omega must have exact order n
+        if (omega ** n) != Fr.one():
+            raise ValueError(f"omega^{n} != 1 — Fr(5) is not a valid generator")
+        if n > 1 and (omega ** (n // 2)) == Fr.one():
+            raise ValueError(f"omega has order < {n} — root of unity is degenerate")
         return omega
 
     def fft(self, coeffs: List[Fr]) -> List[Fr]:
+        if len(coeffs) > self.n:
+            raise ValueError(
+                f"FFT input length {len(coeffs)} exceeds domain size {self.n}"
+            )
         a = coeffs + [Fr.zero()] * (self.n - len(coeffs))
         return self._fft_recursive(a, self.omega)
 
     def ifft(self, evals: List[Fr]) -> List[Fr]:
+        if len(evals) != self.n:
+            raise ValueError(
+                f"IFFT input length {len(evals)} must equal domain size {self.n}"
+            )
         result = self._fft_recursive(evals, self.omega_inv)
         n_inv = Fr(self.n).inverse()
         return [x * n_inv for x in result]
