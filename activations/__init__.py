@@ -1,6 +1,6 @@
 """
-activations — Compatibility shim for v1.0 imports.
+activations — Activation function implementations for zkML.
 
-Re-exports from _legacy/activations_legacy/ to maintain backward compatibility
-for all files that still use `from activations.base import ...` etc.
+Provides polynomial approximations (GELU, Swish) and ReLU with
+constraint-count optimizations for R1CS-based proof systems.
 """

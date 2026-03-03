@@ -339,41 +339,40 @@ class KZG:
         if not (len(points) == n and len(values) == n and len(proofs) == n):
             raise ValueError("Input lists must have the same length")
 
-        if random_challenge is None:
-            # In production, this should be a Fiat-Shamir challenge
-            random_challenge = Fr(9876543210)
+        if n == 0:
+            return True
 
-        # Compute random powers
+        if random_challenge is None:
+            # Derive Fiat-Shamir challenge from commitments for non-interactivity
+            import hashlib
+            h = hashlib.sha256()
+            for c in commitments:
+                h.update(str(c.point).encode())
+            random_challenge = Fr(int.from_bytes(h.digest(), 'big'))
+
+        # Compute random powers: [1, r, r^2, ..., r^(n-1)]
         powers = [Fr.one()]
         for _ in range(n - 1):
             powers.append(powers[-1] * random_challenge)
 
-        # Aggregate commitments: Σ r^i * C_i
-        agg_commitment = G1Point.identity()
-        for i in range(n):
-            agg_commitment = agg_commitment + commitments[i].point * powers[i]
-
-        # Aggregate values: Σ r^i * y_i
-        agg_value = Fr.zero()
-        for i in range(n):
-            agg_value = agg_value + powers[i] * values[i]
-
-        # Aggregate proofs: Σ r^i * π_i
-        agg_proof = G1Point.identity()
-        for i in range(n):
-            agg_proof = agg_proof + proofs[i].point * powers[i]
-
-        # Verify aggregated proof using tau-based check (same as single verify)
+        # Retrieve tau from SRS
         if not hasattr(self.srs, '_tau') or self.srs._tau is None:
             raise ValueError("SRS does not contain tau for verification.")
         tau = self.srs._tau
         g1 = G1Point.generator()
-        agg_lhs = agg_commitment - g1 * agg_value
-        tau_check = agg_proof * tau
-        # Check: Σ r_i*(C_i - y_i*G1) == Σ r_i*π_i * τ - Σ r_i*π_i*z_i
-        # This is a simplified non-pairing check.
-        # TODO: Replace with proper pairing when available.
-        return True  # Placeholder — aggregation structure verified above
+
+        # LHS: Σ r^i * (C_i - y_i * G1)
+        lhs = G1Point.identity()
+        for i in range(n):
+            lhs = lhs + (commitments[i].point - g1 * values[i]) * powers[i]
+
+        # RHS: Σ r^i * π_i * (τ - z_i)
+        rhs = G1Point.identity()
+        for i in range(n):
+            tau_minus_zi = tau - points[i]
+            rhs = rhs + proofs[i].point * (powers[i] * tau_minus_zi)
+
+        return lhs == rhs
 
 
 def create_opening_proof_multi(
