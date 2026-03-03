@@ -1,15 +1,15 @@
 """
-PLONK Circuit Compiler für zkML
+PLONK Circuit Compiler for zkML
 
-Dieses Modul übersetzt neuronale Netze in optimierte PLONK-Circuits.
+This module translates neural networks into optimized PLONK circuits.
 
-Kernfunktionen:
-1. Network → PLONK Circuit Konvertierung
-2. GELU-Aktivierung als effiziente Polynom-Gates
-3. Sparse-Optimierung: Inaktive Neuronen werden übersprungen
+Core features:
+1. Network → PLONK Circuit conversion
+2. GELU activation as efficient polynomial gates
+3. Sparse optimization: Inactive neurons are skipped
 
-Die Integration erfolgt auf Circuit-Ebene, nicht auf Proof-Ebene.
-Das bedeutet: Der Circuit selbst ist bereits optimiert, bevor der Prover läuft.
+Integration happens at the circuit level, not the proof level.
+This means: The circuit itself is already optimized before the prover runs.
 """
 
 from __future__ import annotations
@@ -26,20 +26,20 @@ from zkml_system.plonk.polynomial import Polynomial
 
 
 class GateType(Enum):
-    """Typen von PLONK-Gates."""
+    """PLONK gate types."""
     ADD = "add"           # a + b = c
     MUL = "mul"           # a * b = c
     CONST = "const"       # a = constant
-    ZERO = "zero"         # a = 0 (für Sparse-Neuronen)
-    GELU_SQUARE = "gelu_sq"    # x² für GELU
-    GELU_CUBIC = "gelu_cub"    # x³ für GELU
-    GELU_OUTPUT = "gelu_out"   # Finale GELU-Berechnung
+    ZERO = "zero"         # a = 0 (for sparse neurons)
+    GELU_SQUARE = "gelu_sq"    # x² for GELU
+    GELU_CUBIC = "gelu_cub"    # x³ for GELU
+    GELU_OUTPUT = "gelu_out"   # Final GELU computation
     RELU_SIGN = "relu_sign"    # Boolean constraint for ReLU sign bit
 
 
 @dataclass
 class Wire:
-    """Ein Draht im Circuit."""
+    """A wire in the circuit."""
     index: int
     value: Optional[Fr] = None
     is_public: bool = False
@@ -48,20 +48,20 @@ class Wire:
 
 @dataclass
 class Gate:
-    """Ein Gate im PLONK-Circuit."""
+    """A gate in the PLONK circuit."""
     gate_type: GateType
-    left: int       # Index des linken Drahts
-    right: int      # Index des rechten Drahts
-    output: int     # Index des Ausgabe-Drahts
+    left: int       # Index of the left wire
+    right: int      # Index of the right wire
+    output: int     # Index of the output wire
     
-    # Selektoren (für PLONK-Gleichung: q_L*a + q_R*b + q_O*c + q_M*a*b + q_C = 0)
+    # Selectors (for PLONK equation: q_L*a + q_R*b + q_O*c + q_M*a*b + q_C = 0)
     q_L: Fr = field(default_factory=lambda: Fr.zero())
     q_R: Fr = field(default_factory=lambda: Fr.zero())
     q_O: Fr = field(default_factory=lambda: Fr.zero())
     q_M: Fr = field(default_factory=lambda: Fr.zero())
     q_C: Fr = field(default_factory=lambda: Fr.zero())
     
-    # Metadaten
+    # Metadata
     layer_idx: int = -1
     neuron_idx: int = -1
     is_sparse_zero: bool = False
@@ -69,20 +69,20 @@ class Gate:
 
 @dataclass
 class CompiledCircuit:
-    """Ein kompilierter PLONK-Circuit."""
+    """A compiled PLONK circuit."""
     gates: List[Gate]
     wires: List[Wire]
     num_public_inputs: int
     num_public_outputs: int
     
-    # Statistiken
+    # Statistics
     total_gates: int = 0
     sparse_gates: int = 0
     gelu_gates: int = 0
     mul_gates: int = 0
     add_gates: int = 0
     
-    # Sparse-Info
+    # Sparse info
     sparsity_map: Dict[Tuple[int, int], bool] = field(default_factory=dict)
     
     def __post_init__(self):
@@ -94,7 +94,7 @@ class CompiledCircuit:
         self.add_gates = sum(1 for g in self.gates if g.gate_type == GateType.ADD)
     
     def get_selectors(self) -> Dict[str, List[Fr]]:
-        """Extrahiert die Selektor-Polynome für PLONK."""
+        """Extract selector polynomials for PLONK."""
         n = len(self.gates)
         return {
             'q_L': [g.q_L for g in self.gates],
@@ -137,18 +137,18 @@ class CompiledCircuit:
 
 class CircuitCompiler:
     """
-    Kompiliert neuronale Netze in optimierte PLONK-Circuits.
+    Compiles neural networks into optimized PLONK circuits.
     
-    Optimierungen:
-    1. GELU-Aktivierung: 3 Gates statt 255 (für Bit-Dekomposition bei ReLU)
-    2. Sparse-Optimierung: Inaktive Neuronen → 1 Zero-Gate statt voller Berechnung
+    Optimizations:
+    1. GELU activation: 3 gates instead of 255 (for bit-decomposition with ReLU)
+    2. Sparse optimization: Inactive neurons → 1 zero gate instead of full computation
     """
     
     def __init__(self, use_sparse: bool = True, use_gelu: bool = True):
         """
         Args:
-            use_sparse: Aktiviert Sparse-Optimierung (überspringt inaktive Neuronen)
-            use_gelu: Verwendet GELU-Gates statt ReLU-Bit-Dekomposition
+            use_sparse: Enable sparse optimization (skip inactive neurons)
+            use_gelu: Use GELU gates instead of ReLU bit-decomposition
         """
         self.use_sparse = use_sparse
         self.use_gelu = use_gelu
@@ -157,12 +157,12 @@ class CircuitCompiler:
         self.wires: List[Wire] = []
         self.wire_counter = 0
         
-        # Tracking für Sparse-Optimierung
+        # Tracking for sparse optimization
         self.sparsity_map: Dict[Tuple[int, int], bool] = {}  # (layer, neuron) -> is_active
         self.activation_values: Dict[Tuple[int, int], Fr] = {}  # (layer, neuron) -> value
     
     def _new_wire(self, name: str = "", is_public: bool = False) -> int:
-        """Erstellt einen neuen Draht und gibt seinen Index zurück."""
+        """Create a new wire and return its index."""
         wire = Wire(index=self.wire_counter, name=name, is_public=is_public)
         self.wires.append(wire)
         self.wire_counter += 1
@@ -276,13 +276,13 @@ class CircuitCompiler:
         neuron_idx: int = -1
     ) -> Gate:
         """
-        Fügt ein Zero-Gate hinzu: wire = 0
+        Add a zero gate: wire = 0
         
-        Dies ist die Sparse-Optimierung: Ein inaktives Neuron wird mit
-        einem einzigen Gate bewiesen, statt der vollen Berechnung.
+        This is the sparse optimization: An inactive neuron is proven with
+        a single gate instead of full computation.
         
-        PLONK-Gleichung: q_L * a = 0
-        → q_L = 1, und a muss 0 sein
+        PLONK equation: q_L * a = 0
+        → q_L = 1, and a must be 0
         """
         gate = Gate(
             gate_type=GateType.ZERO,
@@ -489,38 +489,38 @@ class CircuitCompiler:
         activation_values: Optional[List[int]] = None
     ) -> List[int]:
         """
-        Kompiliert einen Dense-Layer in PLONK-Gates.
+        Compile a dense layer into PLONK gates.
         
-        Für jedes Neuron:
-        1. Lineare Kombination: z = Σ w_i * x_i + b
-        2. Aktivierung: y = f(z)
+        For each neuron:
+        1. Linear combination: z = Σ w_i * x_i + b
+        2. Activation: y = f(z)
         
-        Mit Sparse-Optimierung:
-        - Wenn activation_values[j] == 0: Nur ein Zero-Gate
-        - Sonst: Volle Berechnung
+        With sparse optimization:
+        - If activation_values[j] == 0: Only one zero gate
+        - Otherwise: Full computation
         """
         output_size = len(weights)
         input_size = len(input_wires)
         output_wires = []
         
         for j in range(output_size):
-            # Prüfe Sparsity
+            # Check sparsity
             is_active = True
             if self.use_sparse and activation_values is not None:
                 is_active = activation_values[j] != 0
                 self.sparsity_map[(layer_idx, j)] = is_active
             
             if not is_active:
-                # Sparse-Optimierung: Nur ein Zero-Gate
+                # Sparse optimization: Only one zero gate
                 output_wire = self._new_wire(f"sparse_zero_L{layer_idx}_N{j}")
                 self._set_wire_value(output_wire, Fr.zero())
                 self._add_zero_gate(output_wire, layer_idx, j)
                 output_wires.append(output_wire)
                 continue
             
-            # Volle Berechnung für aktives Neuron
+            # Full computation for active neuron
             
-            # Schritt 1: Gewichtete Summe
+            # Step 1: Weighted sum
             # z = Σ w_i * x_i
             accumulator = None
             
@@ -531,23 +531,23 @@ class CircuitCompiler:
                 # FIX-H2: Constrain weight as constant
                 weight_wire = self._const_wire(Fr(weights[j][i]), layer_idx, j)
                 
-                # Multiplikation
+                # Multiplication
                 self._add_mul_gate(weight_wire, input_wires[i], product_wire, layer_idx, j)
                 
                 if accumulator is None:
                     accumulator = product_wire
                 else:
-                    # Akkumuliere
+                    # Accumulate
                     new_acc = self._new_wire(f"acc_L{layer_idx}_N{j}_I{i}")
                     self._add_add_gate(accumulator, product_wire, new_acc, layer_idx, j)
                     accumulator = new_acc
             
-            # Schritt 2: FIX-H2: Constrain bias as constant
+            # Step 2: FIX-H2: Constrain bias as constant
             pre_activation = self._new_wire(f"pre_act_L{layer_idx}_N{j}")
             bias_wire = self._const_wire(Fr(biases[j]), layer_idx, j)
             self._add_add_gate(accumulator, bias_wire, pre_activation, layer_idx, j)
             
-            # Schritt 3: Aktivierung
+            # Step 3: Activation
             output_wire = self._new_wire(f"output_L{layer_idx}_N{j}")
             
             if activation.lower() in ['gelu', 'swish'] and self.use_gelu:
@@ -633,23 +633,23 @@ def compile_from_network(
     use_gelu: bool = True
 ) -> CompiledCircuit:
     """
-    Convenience-Funktion: Kompiliert ein Network-Objekt in einen PLONK-Circuit.
+    Convenience function: Compile a Network object into a PLONK circuit.
     
     Args:
-        network: Ein Network-Objekt aus network/builder.py
-        inputs: Eingabewerte
-        use_sparse: Aktiviert Sparse-Optimierung
-        use_gelu: Verwendet GELU-Gates
+        network: A Network object from network/builder.py
+        inputs: Input values
+        use_sparse: Enable sparse optimization
+        use_gelu: Use GELU gates
     
     Returns:
         CompiledCircuit
     """
     compiler = CircuitCompiler(use_sparse=use_sparse, use_gelu=use_gelu)
     
-    # Forward-Pass durchführen, um Aktivierungswerte zu erhalten
+    # Run forward pass to obtain activation values
     outputs, witness, stats = network.forward(inputs)
     
-    # Layer-Konfigurationen extrahieren
+    # Extract layer configurations
     layer_configs = []
     activation_values_per_layer = []
     
@@ -662,8 +662,8 @@ def compile_from_network(
         }
         layer_configs.append(config)
         
-        # Aktivierungswerte aus dem Witness extrahieren (vereinfacht)
-        # In einer vollständigen Implementierung würden wir die genauen Werte aus dem Witness lesen
+        # Extract activation values from witness (simplified)
+        # In a complete implementation, we would read the exact values from the witness
         layer_size = layer.config.output_size
         activation_values = [0] * layer_size  # Placeholder
         activation_values_per_layer.append(activation_values)

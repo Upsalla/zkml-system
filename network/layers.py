@@ -1,13 +1,13 @@
 """
-Neural Network Layers für zkML
+Neural Network Layers for zkML
 ==============================
 
-Implementiert die grundlegenden Layer-Typen für neuronale Netze,
-optimiert für zkML mit minimalen Constraints.
+Implements the basic layer types for neural networks,
+optimized for zkML with minimal constraints.
 
-Unterstützte Layer:
-- DenseLayer: Vollständig verbundener Layer
-- (Erweiterbar: Conv2D, BatchNorm, etc.)
+Supported layers:
+- DenseLayer: Fully connected layer
+- (Extensible: Conv2D, BatchNorm, etc.)
 """
 
 from typing import List, Tuple, Optional, Any
@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 import sys
 import os
 
-# Füge Parent-Verzeichnis zum Path hinzu
+# Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.witness import Witness, WitnessBuilder
@@ -25,7 +25,7 @@ from activations.optimized import get_activation
 
 @dataclass
 class LayerConfig:
-    """Konfiguration für einen Layer."""
+    """Configuration for a layer."""
     input_size: int
     output_size: int
     activation: str = "gelu"  # "gelu", "swish", "quadratic", "relu", "none"
@@ -35,12 +35,12 @@ class LayerConfig:
 
 @dataclass
 class LayerWeights:
-    """Gewichte für einen Layer."""
+    """Weights for a layer."""
     weights: List[List[int]]  # [output_size][input_size]
     biases: Optional[List[int]] = None  # [output_size]
     
     def validate(self, config: LayerConfig) -> bool:
-        """Validiert, dass die Gewichte zur Konfiguration passen."""
+        """Validate that weights match the configuration."""
         if len(self.weights) != config.output_size:
             return False
         if any(len(row) != config.input_size for row in self.weights):
@@ -52,61 +52,61 @@ class LayerWeights:
 
 @dataclass
 class LayerOutput:
-    """Ausgabe eines Layer-Forwards."""
-    output_indices: List[int]  # Indices der Ausgaben im Witness
-    activation_indices: List[int]  # Indices der Aktivierungen (vor Aktivierungsfunktion)
+    """Output of a layer forward pass."""
+    output_indices: List[int]  # Indices of outputs in witness
+    activation_indices: List[int]  # Indices of activations (before activation function)
     num_constraints: int
-    sparsity: float  # Anteil der inaktiven Neuronen
+    sparsity: float  # Fraction of inactive neurons
 
 
 class DenseLayer:
     """
-    Vollständig verbundener (Dense) Layer.
+    Fully connected (dense) layer.
     
-    Berechnung: output = activation(W @ input + b)
+    Computation: output = activation(W @ input + b)
     
-    Constraint-Analyse:
-    - Matrixmultiplikation: input_size Constraints pro Output-Neuron
-    - Bias-Addition: 1 Constraint pro Output-Neuron (wenn use_bias)
-    - Aktivierung: Abhängig von der Aktivierungsfunktion
+    Constraint analysis:
+    - Matrix multiplication: input_size constraints per output neuron
+    - Bias addition: 1 constraint per output neuron (if use_bias)
+    - Activation: Depends on the activation function
     
-    Gesamt pro Neuron: input_size + 1 + activation_constraints
+    Total per neuron: input_size + 1 + activation_constraints
     """
     
     def __init__(self, config: LayerConfig, weights: LayerWeights, prime: int):
         """
-        Initialisiert den Dense Layer.
+        Initialize the dense layer.
         
         Args:
-            config: Layer-Konfiguration
-            weights: Gewichte und Biases
-            prime: Das Primfeld
+            config: Layer configuration
+            weights: Weights and biases
+            prime: The prime field
         """
         if not weights.validate(config):
-            raise ValueError("Gewichte passen nicht zur Konfiguration")
+            raise ValueError("Weights do not match configuration")
         
         self.config = config
         self.weights = weights
         self.prime = prime
         
-        # Aktivierungsfunktion
+        # Activation function
         if config.activation.lower() != "none":
             self.activation = get_activation(config.activation)
         else:
             self.activation = None
         
-        # Constraint-Berechnung
+        # Constraint calculation
         self._calculate_constraint_cost()
     
     def _calculate_constraint_cost(self) -> None:
-        """Berechnet die Constraint-Kosten für diesen Layer."""
+        """Calculate the constraint cost for this layer."""
         # Matrixmultiplikation: input_size Multiplikationen pro Output
         matmul_constraints = self.config.input_size * self.config.output_size
         
         # Bias: 1 Addition pro Output (als Constraint: (sum + bias) * 1 = result)
         bias_constraints = self.config.output_size if self.config.use_bias else 0
         
-        # Aktivierung
+        # Activation
         if self.activation:
             activation_constraints = self.activation.constraint_count * self.config.output_size
         else:
@@ -124,20 +124,20 @@ class DenseLayer:
         layer_id: int = 0
     ) -> LayerOutput:
         """
-        Führt den Forward-Pass durch und generiert Witness-Einträge.
+        Perform forward pass and generate witness entries.
         
         Args:
-            input_indices: Indices der Eingaben im Witness
-            witness: Der Witness
-            layer_id: ID dieses Layers (für Tracking)
+            input_indices: Indices of inputs in the witness
+            witness: The witness
+            layer_id: ID of this layer (for tracking)
             
         Returns:
-            LayerOutput mit Output-Indices und Statistiken
+            LayerOutput with output indices and statistics
         """
         if len(input_indices) != self.config.input_size:
-            raise ValueError(f"Erwartete {self.config.input_size} Eingaben, bekam {len(input_indices)}")
+            raise ValueError(f"Expected {self.config.input_size} inputs, got {len(input_indices)}")
         
-        # Hole Eingabewerte
+        # Get input values
         inputs = [witness.get(idx) for idx in input_indices]
         
         output_indices = []
@@ -145,16 +145,16 @@ class DenseLayer:
         inactive_count = 0
         
         for neuron_idx in range(self.config.output_size):
-            # Berechne gewichtete Summe
+            # Compute weighted sum
             weighted_sum = 0
             for i, (inp, w) in enumerate(zip(inputs, self.weights.weights[neuron_idx])):
                 weighted_sum = (weighted_sum + inp * w) % self.prime
             
-            # Bias addieren
+            # Add bias
             if self.config.use_bias:
                 weighted_sum = (weighted_sum + self.weights.biases[neuron_idx]) % self.prime
             
-            # Zwischenwert (vor Aktivierung) im Witness speichern
+            # Store intermediate value (before activation) in witness
             pre_act_idx = witness.allocate(
                 weighted_sum,
                 name=f"{self.config.name}_pre_act_{neuron_idx}",
@@ -164,17 +164,17 @@ class DenseLayer:
             )
             activation_indices.append(pre_act_idx)
             
-            # Aktivierung anwenden
+            # Apply activation
             if self.activation:
                 output_value = self.activation.compute(weighted_sum, self.prime)
                 
-                # Prüfe auf Inaktivität (für Sparsity-Tracking)
+                # Check for inactivity (for sparsity tracking)
                 if output_value == 0:
                     inactive_count += 1
             else:
                 output_value = weighted_sum
             
-            # Output im Witness speichern
+            # Store output in witness
             out_idx = witness.allocate(
                 output_value,
                 name=f"{self.config.name}_out_{neuron_idx}",
