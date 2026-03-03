@@ -22,6 +22,7 @@ setup(
     python_requires=">=3.9",
     install_requires=[
         "numpy>=1.21.0",
+        "py_ecc>=7.0.0",
     ],
     extras_require={
         "dev": [
