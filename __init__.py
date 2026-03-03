@@ -1,17 +1,16 @@
 """
-zkML System - Zero-Knowledge Machine Learning from Scratch
-==========================================================
+zkml-system — Zero-Knowledge Machine Learning from Scratch.
 
-Ein vollständig von Grund auf implementiertes Zero-Knowledge Machine Learning System.
+PLONK prover/verifier on BN254 with a hybrid TDA+ZK bridge
+for privacy-preserving model similarity proofs.
 """
 
-__version__ = "2.0.0"
-__author__ = "zkML Research"
+__version__ = "3.1.0"
 
-# Legacy imports wrapped in try/except — the original module structure
-# (core, activations, sparse, network, proof) was replaced by
-# (crypto, plonk, tda, network) in v2.0. Submodule imports
-# like `from zkml_system.crypto.bn254.field import Fr` still work.
+# Direct submodule imports:
+#   from zkml_system.crypto.bn254.fr_adapter import Fr
+#   from zkml_system.plonk.plonk_prover import PLONKProver, PLONKVerifier
+#   from zkml_system.hybrid_bridge import HybridBridge
 
 try:
     from .core import (
@@ -29,31 +28,6 @@ try:
         SwishApproxActivation as SwishApprox,
         QuadraticActivation,
         get_activation
-    )
-except ImportError:
-    pass
-
-try:
-    from .sparse import (
-        SparsityStats, SparseConstraintSet, SparseProofBuilder,
-        ZeroProofGenerator, analyze_sparsity
-    )
-except ImportError:
-    pass
-
-try:
-    from .network import (
-        LayerConfig, LayerWeights, LayerOutput,
-        DenseLayer, InputLayer, OutputLayer,
-        NetworkStats, LayerSpec, Network, NetworkBuilder
-    )
-except ImportError:
-    pass
-
-try:
-    from .proof import (
-        ProofComponents, Proof, Prover, ProofStats,
-        VerificationResult, Verifier, BatchVerifier
     )
 except ImportError:
     pass

@@ -13,7 +13,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from wavelet.haar_transform import HWWBSystem, HWWBProof, HWWBProver
+from experimental.wavelet.haar_transform import HWWBSystem, HWWBProof, HWWBProver
 from core.field import FieldConfig
 
 
@@ -132,9 +132,10 @@ class HWWBOptimizedProver:
             metadata["hwwb_small_diffs"] = len(proof.small_diff_indices)
             metadata["hwwb_compression"] = 1 - (proof.size_bytes() / (len(witness) * 8))
         elif optimization == "sparse":
-            # Use standard sparse proof (placeholder - would integrate with CSWC)
+            # CSWC sparse witness optimization not yet wired to
+            # the real PLONK prover. Fall through to standard.
             proof = self._prove_standard(witness)
-            metadata["note"] = "Using CSWC (sparse optimization)"
+            metadata["note"] = "CSWC not implemented — standard path used"
         else:
             # No optimization
             proof = self._prove_standard(witness)
@@ -153,12 +154,17 @@ class HWWBOptimizedProver:
         return self.prover_hwwb.prove(field_witness)
     
     def _prove_standard(self, witness: List[float]) -> Dict[str, Any]:
-        """Generate standard proof (placeholder)."""
-        return {
-            "type": "standard",
-            "witness_commitment": hash(tuple(witness)),
-            "size_bytes": len(witness) * 8
-        }
+        """
+        Standard proof path (NOT a cryptographic proof).
+
+        Returns witness metadata only. For real proofs, use
+        PLONKProver from plonk.plonk_prover.
+        """
+        raise NotImplementedError(
+            "_prove_standard() is not a cryptographic proof. "
+            "Wire the real PLONKProver from plonk_prover.py, or "
+            "use the HWWB wavelet path for witness compression."
+        )
 
 
 class IntegratedZkMLPipeline:
